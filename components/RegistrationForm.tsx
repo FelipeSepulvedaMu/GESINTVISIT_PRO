@@ -12,6 +12,7 @@ import {
 } from '@mui/icons-material';
 import { User, VisitRecord, House, VisitType } from '../types';
 import { api } from '../api';
+import dayjs from 'dayjs';
 
 interface RegistrationFormProps {
   user: User;
@@ -46,8 +47,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit, o
 
     setSubmitting(true);
     try {
+      // FIX: Enviamos la fecha local exacta como string ISO sin convertir a UTC
+      const localDate = dayjs().format('YYYY-MM-DDTHH:mm:ss');
+
       const newVisit = await api.createVisit({
-        date: new Date().toISOString(),
+        date: localDate,
         houseNumber: selectedHouse.number,
         residentName: selectedHouse.residentName,
         type,
@@ -163,7 +167,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit, o
             />
             
             <Grid container spacing={2}>
-              <Grid size={7}>
+              <Grid item xs={7}>
                 <TextField 
                   label="RUT" 
                   required 
@@ -173,7 +177,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit, o
                   onChange={(e) => setVisitorRut(e.target.value)} 
                 />
               </Grid>
-              <Grid size={5}>
+              <Grid item xs={5}>
                 <TextField 
                   label="Patente" 
                   fullWidth 
