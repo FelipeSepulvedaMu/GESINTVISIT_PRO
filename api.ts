@@ -2,18 +2,45 @@
 import { VisitRecord, House, User } from './types';
 
 /**
- * Determinamos la URL de la API de forma dinámica.
- * Si estás en local usa el puerto 3001, en producción intenta usar la URL relativa
- * o una variable de entorno si estuviera disponible.
+ * DETERMINACIÓN DE URL DE API
+ * Intentamos obtener la URL del backend de la variable de entorno,
+ * o asumimos localhost si estamos en desarrollo.
  */
-const API_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3001/api'
-  : (window as any)._env_?.VITE_API_URL || '/api';
+const getApiUrl = () => {
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:3001/api';
+  }
+  
+  // Si tienes una URL de Render específica para el backend, 
+  // podrías hardcodearla aquí si las variables de entorno fallan.
+  // Ejemplo: return 'https://tu-backend.onrender.com/api';
+  
+  return '/api'; 
+};
+
+const API_URL = getApiUrl();
 
 /**
- * Mapeador universal: Convierte snake_case de la DB a camelCase de React.
- * Es vital que coincida exactamente con los nombres de columna de Supabase.
+ * Función auxiliar para procesar respuestas de forma segura.
+ * Evita el error "Unexpected token T..." al recibir HTML de error.
  */
+async function handleResponse(response: Response) {
+  const contentType = response.headers.get("content-type");
+  
+  if (contentType && contentType.includes("application/json")) {
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `Error ${response.status}`);
+    }
+    return data;
+  } else {
+    // Si no es JSON, capturamos el texto para debug
+    const text = await response.text();
+    console.error("Respuesta no-JSON recibida:", text.substring(0, 100));
+    throw new Error(`Error del servidor (${response.status}): El servidor no respondió con JSON.`);
+  }
+}
+
 const mapVisit = (v: any): VisitRecord => ({
   id: v.id,
   date: v.date,
@@ -34,24 +61,17 @@ export const api = {
       body: JSON.stringify({ rut, password })
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Error de autenticación');
-    }
-
-    return await response.json();
+    return await handleResponse(response);
   },
 
   async getHouses(): Promise<House[]> {
     try {
       const response = await fetch(`${API_URL}/visits/houses`);
-      if (!response.ok) throw new Error('No se pudo conectar con el servidor');
-      const data = await response.json();
+      const data = await handleResponse(response);
       
       return data.map((h: any) => ({
         id: h.id,
         number: h.number,
-        // Priorizamos owner_name que es el nombre real en tu tabla de Supabase
         residentName: h.owner_name || h.resident_name || 'Sin nombre',
         phone: h.phone || ''
       }));
@@ -64,8 +84,7 @@ export const api = {
   async getVisits(date: string): Promise<VisitRecord[]> {
     try {
       const response = await fetch(`${API_URL}/visits?date=${date}`);
-      if (!response.ok) return [];
-      const data = await response.json();
+      const data = await handleResponse(response);
       return data.map(mapVisit);
     } catch (error) {
       console.error("Error API getVisits:", error);
@@ -80,9 +99,7 @@ export const api = {
       body: JSON.stringify(visit)
     });
 
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || result.message || 'Error al guardar');
-
+    const result = await handleResponse(response);
     return mapVisit(result);
   }
 };
