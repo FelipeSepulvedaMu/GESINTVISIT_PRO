@@ -3,19 +3,15 @@ import { VisitRecord, House, User } from './types';
 
 /**
  * DETERMINACIÓN DE URL DE API
- * Intentamos obtener la URL del backend de la variable de entorno,
- * o asumimos localhost si estamos en desarrollo.
+ * Usamos la URL específica de tu backend en Render.
  */
 const getApiUrl = () => {
   if (window.location.hostname === 'localhost') {
     return 'http://localhost:3001/api';
   }
   
-  // Si tienes una URL de Render específica para el backend, 
-  // podrías hardcodearla aquí si las variables de entorno fallan.
-  // Ejemplo: return 'https://tu-backend.onrender.com/api';
-  
-  return '/api'; 
+  // URL de tu servidor en Render + el prefijo /api definido en backend/src/app.ts
+  return 'https://backend-gesintvisit-pro-1.onrender.com/api'; 
 };
 
 const API_URL = getApiUrl();
@@ -34,10 +30,15 @@ async function handleResponse(response: Response) {
     }
     return data;
   } else {
-    // Si no es JSON, capturamos el texto para debug
+    // Capturamos el texto para depuración técnica si no es JSON
     const text = await response.text();
-    console.error("Respuesta no-JSON recibida:", text.substring(0, 100));
-    throw new Error(`Error del servidor (${response.status}): El servidor no respondió con JSON.`);
+    console.error("Respuesta no-JSON del servidor:", text.substring(0, 150));
+    
+    if (response.status === 404) {
+      throw new Error(`Error 404: El servidor no encontró la ruta. Verifica que el Backend esté activo en ${API_URL}`);
+    }
+    
+    throw new Error(`Error del servidor (${response.status}): Respuesta inesperada.`);
   }
 }
 
