@@ -1,14 +1,18 @@
 
 import { VisitRecord, House, User } from './types';
 
-// Detectamos si estamos en producción (Render) o local
+/**
+ * Determinamos la URL de la API de forma dinámica.
+ * Si estás en local usa el puerto 3001, en producción intenta usar la URL relativa
+ * o una variable de entorno si estuviera disponible.
+ */
 const API_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:3001/api'
-  : '/api'; // En producción, si servimos el front desde el mismo host
+  : (window as any)._env_?.VITE_API_URL || '/api';
 
 /**
- * Mapeador universal: Asegura que los datos de la DB (snake_case)
- * funcionen con la aplicación React (camelCase).
+ * Mapeador universal: Convierte snake_case de la DB a camelCase de React.
+ * Es vital que coincida exactamente con los nombres de columna de Supabase.
  */
 const mapVisit = (v: any): VisitRecord => ({
   id: v.id,
@@ -41,12 +45,13 @@ export const api = {
   async getHouses(): Promise<House[]> {
     try {
       const response = await fetch(`${API_URL}/visits/houses`);
-      if (!response.ok) throw new Error('Error al obtener casas');
+      if (!response.ok) throw new Error('No se pudo conectar con el servidor');
       const data = await response.json();
       
       return data.map((h: any) => ({
         id: h.id,
         number: h.number,
+        // Priorizamos owner_name que es el nombre real en tu tabla de Supabase
         residentName: h.owner_name || h.resident_name || 'Sin nombre',
         phone: h.phone || ''
       }));
@@ -76,7 +81,7 @@ export const api = {
     });
 
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Error al guardar');
+    if (!response.ok) throw new Error(result.error || result.message || 'Error al guardar');
 
     return mapVisit(result);
   }
