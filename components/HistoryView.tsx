@@ -10,7 +10,7 @@ import {
   HistoryRounded as HistoryRoundedIcon,
   CalendarMonthRounded as CalendarMonthIcon
 } from '@mui/icons-material';
-
+import dayjs from 'dayjs';
 import { VisitRecord } from '../types';
 import { api } from '../api';
 
@@ -22,7 +22,9 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
   const [dbHistory, setDbHistory] = useState<VisitRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // FIX: Usamos dayjs local para el filtro inicial
+  const [filterDate, setFilterDate] = useState(dayjs().format('YYYY-MM-DD'));
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -38,7 +40,6 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
     }
   };
 
-  // Se refresca el historial cuando cambia la fecha o se añade una visita desde el formulario
   useEffect(() => {
     fetchHistory();
   }, [filterDate, localHistory]);
