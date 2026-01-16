@@ -2,7 +2,7 @@
 import { VisitRecord, House, User } from './types';
 
 // En desarrollo usamos localhost:3001, en producción se usará la URL del servidor
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 /**
  * Mapeador universal: Asegura que los datos de la DB (snake_case)
