@@ -4,7 +4,8 @@ import { VisitRecord, House, User } from './types';
  * URL FIJA DEL BACKEND (GCP)
  * Producción directa contra el servidor
  */
-const API_URL = 'http://34.31.212.151:3001/api';
+  // URL de tu DuckDNS con HTTPS
+  return 'https://gesintvisit-api.duckdns.org/api';
 
 /**
  * Manejo seguro de respuestas
