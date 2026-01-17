@@ -113,7 +113,12 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                     <Stack direction="row" spacing={1} alignItems="center">
                       <AccessTimeRoundedIcon fontSize="small" sx={{ color: 'secondary.light', fontSize: 16 }} />
                       <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                        {new Date(record.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(record.date).toLocaleTimeString('es-CL', { 
+                          hour: '2-digit', 
+                          minute: '2-digit', 
+                          hour12: false,
+                          timeZone: 'America/Santiago'
+                        })}
                       </Typography>
                     </Stack>
                   </TableCell>
