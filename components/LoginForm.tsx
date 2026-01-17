@@ -125,11 +125,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
                   letterSpacing: '-2px',
                   textShadow: '0 0 30px rgba(37, 99, 235, 0.4)'
                 }}>
-                  GESINTVISIT
+                  GESINTVISIT PRO
                 </Typography>
               </Box>
               <Typography variant="subtitle1" sx={{ color: '#94a3b8', fontWeight: 600, letterSpacing: 1 }}>
-                SISTEMA PROFESIONAL DE ACCESO
+                Control de Acceso Profesional
               </Typography>
             </Box>
 
@@ -190,7 +190,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
                       '&:hover': { bgcolor: '#1d4ed8', transform: 'translateY(-2px)' }
                     }}
                   >
-                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Entrar al Jardín de Visitas'}
+                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Ingresar al sistema'}
                   </Button>
                 </Stack>
               </form>
