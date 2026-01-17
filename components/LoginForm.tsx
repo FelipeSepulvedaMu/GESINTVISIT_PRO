@@ -39,16 +39,7 @@ const FlowerOrnament = ({ position }: { position: 'top-left' | 'bottom-right' })
       ...(position === 'top-left' ? { top: -50, left: -50 } : { bottom: -50, right: -50, transform: 'rotate(180deg)' }),
     }}
   >
-    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <path fill="#3b82f6" d="M44.7,-76.4C58.1,-69.2,69.2,-58.1,76.4,-44.7C83.7,-31.3,87.1,-15.7,85.2,-0.7C83.2,14.2,75.9,28.5,67.6,41.9C59.3,55.4,50.1,68,37.6,75.2C25.1,82.4,9.2,84.2,-6.4,81.1C-22,78,-37.3,70.1,-49.6,59.3C-61.9,48.5,-71.2,34.8,-76.3,19.9C-81.4,5,-82.3,-11.1,-77.2,-25.6C-72.1,-40.1,-61,-53,-47.9,-60.5C-34.8,-68,-17.4,-70.1,-0.7,-68.9C16.1,-67.6,32.2,-63,44.7,-76.4Z" transform="translate(100 100)" opacity="0.1" />
-      <g fill="none" stroke="#60a5fa" strokeWidth="1.5">
-        <path d="M100,100 Q120,50 150,40 M100,100 Q80,50 50,40 M100,100 Q150,120 160,150 M100,100 Q50,120 40,150" opacity="0.5"/>
-        <circle cx="150" cy="40" r="8" fill="#3b82f6" opacity="0.8"/>
-        <circle cx="50" cy="40" r="8" fill="#3b82f6" opacity="0.8"/>
-        <circle cx="160" cy="150" r="10" fill="#2563eb" opacity="0.8"/>
-        <circle cx="40" cy="150" r="10" fill="#2563eb" opacity="0.8"/>
-      </g>
-    </svg>
+    
   </Box>
 );
 
