@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Box, Typography, Paper, Stack, 
   Chip, CircularProgress, Alert,
@@ -15,6 +16,7 @@ import timezone from 'dayjs/plugin/timezone';
 import { VisitRecord } from '../types';
 import { api } from '../api';
 
+// Configurar plugins necesarios para el fix de hora
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -27,7 +29,6 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // FIX: Usamos dayjs local para el filtro inicial
   const [filterDate, setFilterDate] = useState(dayjs().format('YYYY-MM-DD'));
 
   const fetchHistory = async () => {
@@ -47,6 +48,15 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
   useEffect(() => {
     fetchHistory();
   }, [filterDate, localHistory]);
+
+  // FILTRO DEFINITIVO: Solo mostramos los registros que, al ser convertidos
+  // a la hora de Santiago, coinciden con el día seleccionado en el calendario.
+  const filteredRecords = useMemo(() => {
+    return dbHistory.filter(record => {
+      const santiagoDate = dayjs.utc(record.date).tz('America/Santiago');
+      return santiagoDate.format('YYYY-MM-DD') === filterDate;
+    });
+  }, [dbHistory, filterDate]);
 
   return (
     <Stack spacing={3}>
@@ -68,7 +78,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
           <CalendarMonthIcon color="primary" />
           <TextField 
             type="date" 
-            label="Filtrar por Fecha" 
+            label="Filtrar por Fecha (Chile)" 
             value={filterDate} 
             onChange={(e) => setFilterDate(e.target.value)} 
             fullWidth 
@@ -84,7 +94,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
           />
         </Box>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, minWidth: 'max-content' }}>
-          {dbHistory.length} registros encontrados
+          {filteredRecords.length} registros para este día
         </Typography>
       </Paper>
 
@@ -98,20 +108,20 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
         {loading ? (
           <Box sx={{ p: 10, textAlign: 'center' }}>
             <CircularProgress size={40} thickness={4} />
-            <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 600 }}>Consultando base de datos...</Typography>
+            <Typography sx={{ mt: 2, color: 'text.secondary', fontWeight: 600 }}>Sincronizando con la nube...</Typography>
           </Box>
         ) : (
           <Table size="small">
             <TableHead sx={{ bgcolor: '#f8fafc' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800, py: 2, color: 'primary.main' }}>Hora</TableCell>
+                <TableCell sx={{ fontWeight: 800, py: 2, color: 'primary.main' }}>Hora Local</TableCell>
                 <TableCell sx={{ fontWeight: 800, color: 'primary.main' }}>Casa / Residente</TableCell>
                 <TableCell sx={{ fontWeight: 800, color: 'primary.main' }}>Tipo</TableCell>
                 <TableCell sx={{ fontWeight: 800, color: 'primary.main' }}>Visitante</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {dbHistory.length > 0 ? dbHistory.map((record) => (
+              {filteredRecords.length > 0 ? filteredRecords.map((record) => (
                 <TableRow key={record.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                   <TableCell sx={{ py: 2 }}>
                     <Stack direction="row" spacing={1} alignItems="center">
@@ -158,7 +168,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                   <TableCell colSpan={4} align="center" sx={{ py: 12 }}>
                     <HistoryRoundedIcon sx={{ fontSize: 48, color: 'divider', mb: 2 }} />
                     <Typography color="text.secondary" variant="h6" fontWeight={700}>Sin registros</Typography>
-                    <Typography color="text.disabled" variant="body2">No hay movimientos registrados para el día seleccionado</Typography>
+                    <Typography color="text.disabled" variant="body2">No hay movimientos registrados para el día seleccionado en Chile</Typography>
                   </TableCell>
                 </TableRow>
               )}
