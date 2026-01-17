@@ -26,7 +26,8 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
   const [dbHistory, setDbHistory] = useState<VisitRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  
+  // FIX: Usamos dayjs local para el filtro inicial
   const [filterDate, setFilterDate] = useState(dayjs().format('YYYY-MM-DD'));
 
   const fetchHistory = async () => {
@@ -49,7 +50,20 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
 
   return (
     <Stack spacing={3}>
-      <Paper elevation={0} sx={{ p: 3, borderRadius: 5, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 5, 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2, 
+          alignItems: 'center',
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider'
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1, width: '100%' }}>
           <CalendarMonthIcon color="primary" />
           <TextField 
@@ -60,7 +74,13 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
             fullWidth 
             InputLabelProps={{ shrink: true }}
             variant="standard"
-            sx={{ '& .MuiInput-root': { fontSize: '1.1rem', fontWeight: 700, py: 0.5 } }}
+            sx={{ 
+              '& .MuiInput-root': { 
+                fontSize: '1.1rem', 
+                fontWeight: 700,
+                py: 0.5
+              } 
+            }}
           />
         </Box>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, minWidth: 'max-content' }}>
@@ -68,7 +88,11 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
         </Typography>
       </Paper>
 
-      {error && <Alert severity="warning" variant="outlined" sx={{ borderRadius: 3, fontWeight: 600 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="warning" variant="outlined" sx={{ borderRadius: 3, fontWeight: 600 }}>
+          {error}
+        </Alert>
+      )}
 
       <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 5, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
         {loading ? (
@@ -93,7 +117,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                     <Stack direction="row" spacing={1} alignItems="center">
                       <AccessTimeRoundedIcon fontSize="small" sx={{ color: 'secondary.light', fontSize: 16 }} />
                       <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                        {dayjs(record.date).tz('America/Santiago').format('HH:mm')}
+                        {dayjs.utc(record.date).tz('America/Santiago').format('HH:mm')}
                       </Typography>
                     </Stack>
                   </TableCell>
@@ -111,7 +135,13 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                       size="small" 
                       variant="filled"
                       color={record.type === 'visita' ? 'primary' : 'warning'} 
-                      sx={{ fontWeight: 900, fontSize: '0.6rem', height: 20, borderRadius: 1, textTransform: 'uppercase' }}
+                      sx={{ 
+                        fontWeight: 900, 
+                        fontSize: '0.6rem', 
+                        height: 20, 
+                        borderRadius: 1,
+                        textTransform: 'uppercase'
+                      }}
                     />
                   </TableCell>
                   <TableCell>
