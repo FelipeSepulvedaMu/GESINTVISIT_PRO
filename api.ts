@@ -14,7 +14,6 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
-
 /**
  * Manejo seguro de respuestas
  */
