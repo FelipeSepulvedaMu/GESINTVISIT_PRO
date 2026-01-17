@@ -1,11 +1,19 @@
 import { VisitRecord, House, User } from './types';
 
 /**
- * URL FIJA DEL BACKEND (GCP)
- * Producción directa contra el servidor
+ * URL del backend
+ * Producción directa contra el servidor DuckDNS
  */
-  // URL de tu DuckDNS con HTTPS
+const getApiUrl = () => {
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:3001/api';
+  }
+
+  // URL de producción con DuckDNS y HTTPS
   return 'https://gesintvisit-api.duckdns.org/api';
+};
+
+const API_URL = getApiUrl();
 
 /**
  * Manejo seguro de respuestas
@@ -17,29 +25,20 @@ async function handleResponse(response: Response) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(
-        data.message || data.error || `Error ${response.status}`
-      );
+      throw new Error(data.message || data.error || `Error ${response.status}`);
     }
 
     return data;
   }
 
   const text = await response.text();
-  console.error(
-    'Respuesta no-JSON del servidor:',
-    text.substring(0, 200)
-  );
+  console.error('Respuesta no-JSON del servidor:', text.substring(0, 200));
 
   if (response.status === 404) {
-    throw new Error(
-      `Error 404: ruta no encontrada en ${API_URL}`
-    );
+    throw new Error(`Error 404: ruta no encontrada en ${API_URL}`);
   }
 
-  throw new Error(
-    `Error del servidor (${response.status})`
-  );
+  throw new Error(`Error del servidor (${response.status})`);
 }
 
 /**
@@ -76,10 +75,7 @@ export const api = {
       return data.map((h: any) => ({
         id: h.id,
         number: h.number,
-        residentName:
-          h.owner_name ||
-          h.resident_name ||
-          'Sin nombre',
+        residentName: h.owner_name || h.resident_name || 'Sin nombre',
         phone: h.phone || ''
       }));
     } catch (error) {
@@ -90,9 +86,7 @@ export const api = {
 
   async getVisits(date: string): Promise<VisitRecord[]> {
     try {
-      const response = await fetch(
-        `${API_URL}/visits?date=${date}`
-      );
+      const response = await fetch(`${API_URL}/visits?date=${date}`);
       const data = await handleResponse(response);
       return data.map(mapVisit);
     } catch (error) {
@@ -101,9 +95,7 @@ export const api = {
     }
   },
 
-  async createVisit(
-    visit: Partial<VisitRecord>
-  ): Promise<VisitRecord> {
+  async createVisit(visit: Partial<VisitRecord>): Promise<VisitRecord> {
     const response = await fetch(`${API_URL}/visits`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
