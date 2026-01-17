@@ -13,6 +13,9 @@ import {
 import { User, VisitRecord, House, VisitType } from '../types';
 import { api } from '../api';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 interface RegistrationFormProps {
   user: User;
@@ -47,11 +50,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit, o
 
     setSubmitting(true);
     try {
-      // FIX: Enviamos la fecha local exacta como string ISO sin convertir a UTC
-      const localDate = dayjs().format('YYYY-MM-DDTHH:mm:ss');
+      // Usamos .utc().format() para asegurar que enviamos el tiempo real absoluto a la DB
+      const isoDate = dayjs().utc().format();
 
       const newVisit = await api.createVisit({
-        date: localDate,
+        date: isoDate,
         houseNumber: selectedHouse.number,
         residentName: selectedHouse.residentName,
         type,
