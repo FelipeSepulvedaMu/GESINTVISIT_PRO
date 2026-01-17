@@ -1,10 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
-import { ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, Typography, IconButton, Container, Avatar, Fade } from '@mui/material';
+import { 
+  ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, 
+  Typography, IconButton, Container, Avatar, Fade
+} from '@mui/material';
 import { LogoutRounded, AdminPanelSettings as AdminPanelSettingsIcon } from '@mui/icons-material';
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
 import { User, VisitRecord } from './types';
-import { api } from './api'; // IMPORTANTE: usamos el API real
+import { api } from './api';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -12,34 +16,57 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const theme = createTheme({ /* ...tu theme actual... */ });
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: { main: '#1e293b', light: '#334155', dark: '#0f172a' },
+    secondary: { main: '#2563eb', light: '#3b82f6', dark: '#1d4ed8' },
+    background: { default: '#f8fafc', paper: '#ffffff' },
+    text: { primary: '#0f172a', secondary: '#64748b' },
+  },
+  shape: { borderRadius: 12 },
+  typography: {
+    fontFamily: '"Inter", sans-serif',
+    h3: { fontWeight: 900, letterSpacing: '-0.04em' },
+    h6: { fontWeight: 800, letterSpacing: '-0.02em' },
+    button: { textTransform: 'none', fontWeight: 700 },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: { padding: '10px 24px', boxShadow: 'none', '&:hover': { boxShadow: 'none' } },
+      }
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: { border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }
+      }
+    }
+  }
+});
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [history, setHistory] = useState<VisitRecord[]>([]);
 
-  // FETCH de visitas reales desde el backend
-  const fetchHistory = async () => {
+  const fetchInitialHistory = async () => {
     try {
       const today = dayjs().format('YYYY-MM-DD');
       const data = await api.getVisits(today);
-
-      // Convertimos la fecha a Chile
-      const chileHistory = data.map(v => ({
-        ...v,
-        date: dayjs(v.date).tz('America/Santiago').format()
-      }));
-
-      setHistory(chileHistory);
+      
+      // Mantenemos la fecha ISO original para que los componentes la manejen
+      setHistory(data);
     } catch (err) {
-      console.error('Error al obtener visitas del backend', err);
+      console.error('Error al obtener visitas iniciales:', err);
       setHistory([]);
     }
   };
 
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    if (user) {
+      fetchInitialHistory();
+    }
+  }, [user]);
 
   const handleLogin = (rut: string, name: string) => setUser({ rut, name });
   const handleLogout = () => setUser(null);
@@ -73,7 +100,8 @@ const App: React.FC = () => {
         </AppBar>
 
         <Container maxWidth="sm" sx={{ py: 4, flexGrow: 1 }}>
-          <Fade in timeout={500}>
+          {/* Explicitly passing 'in={true}' to avoid ambiguity and ensure single child recognition */}
+          <Fade in={true} timeout={500}>
             <Box>
               <Dashboard user={user} history={history} onAddVisit={addVisit} />
             </Box>
