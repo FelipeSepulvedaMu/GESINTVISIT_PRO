@@ -109,7 +109,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
           <Box>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1, mb: 1 }}>
-                <FlowerIcon sx={{ color: '#60a5fa', fontSize: 32, animation: `${sway} 4s infinite` }} />
+                
                 <Typography variant="h3" sx={{ 
                   fontWeight: 900, 
                   color: '#fff', 
