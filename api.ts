@@ -9,8 +9,7 @@ const getApiUrl = () => {
     return 'http://localhost:3001/api';
   }
 
-  // URL de producción con DuckDNS y HTTPS
-  return 'https://gesintvisit-api.duckdns.org/api';
+  return 'https://gesintcon-plus-backend.duckdns.org/api';
 };
 
 const API_URL = getApiUrl();
