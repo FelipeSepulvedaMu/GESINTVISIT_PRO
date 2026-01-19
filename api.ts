@@ -1,23 +1,13 @@
 import { VisitRecord, House, User } from './types';
 
 /**
- * URL del backend
- * - Local: localhost
- * - Producción: DuckDNS
+ * URL del backend definida por entorno (Vercel)
  */
-const getApiUrl = () => {
-  const hostname = window.location.hostname;
+const API_URL = import.meta.env.VITE_API_URL;
 
-  // Entorno local explícito
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:3001/api';
-  }
-
-  // Producción
-  return 'https://gesintcon-plus-backend.duckdns.org/api';
-};
-
-const API_URL = getApiUrl();
+if (!API_URL) {
+  throw new Error('VITE_API_URL no está definida en el entorno');
+}
 
 /**
  * Manejo seguro de respuestas
