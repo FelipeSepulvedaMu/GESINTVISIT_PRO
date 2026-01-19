@@ -2,17 +2,23 @@ import { VisitRecord, House, User } from './types';
 
 /**
  * URL del backend
- * Producción directa contra el servidor DuckDNS
+ * - Local: localhost
+ * - Producción: DuckDNS
  */
 const getApiUrl = () => {
-  if (window.location.hostname === 'localhost') {
+  const hostname = window.location.hostname;
+
+  // Entorno local explícito
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:3001/api';
   }
 
+  // Producción
   return 'https://gesintcon-plus-backend.duckdns.org/api';
 };
 
 const API_URL = getApiUrl();
+
 /**
  * Manejo seguro de respuestas
  */
