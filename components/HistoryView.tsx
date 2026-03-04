@@ -1,16 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Box, Typography, Paper, Stack, 
-  Chip, CircularProgress, TextField, Button, Grid,
-  Tabs, Tab
+import {
+  Box,
+  Typography,
+  Paper,
+  Stack,
+  Chip,
+  CircularProgress,
+  TextField,
+  Button,
+  Grid,
+  Tabs,
+  Tab,
+  Alert
 } from '@mui/material';
-import { 
+import {
   CalendarMonthRounded as CalendarMonthIcon,
   ExitToAppRounded as ExitIcon,
   HomeRounded as HomeIcon,
   PersonRounded as PersonIcon,
   BadgeRounded as BadgeIcon,
-  LocalParkingRounded as ParkingIcon,
   FormatListBulletedRounded as ListIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
@@ -21,27 +29,31 @@ import { api } from '../api';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
 const CHILE_TZ = 'America/Santiago';
 
 interface HistoryViewProps {
-  history: VisitRecord[]; 
+  history: VisitRecord[];
 }
 
 const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
   const [dbHistory, setDbHistory] = useState<VisitRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  
+
   const getTodayChile = () => dayjs().tz(CHILE_TZ).format('YYYY-MM-DD');
   const [filterDate, setFilterDate] = useState(getTodayChile());
   const [tabValue, setTabValue] = useState(0);
 
   const fetchHistory = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await api.getVisits(filterDate);
       setDbHistory(data);
-    } catch (err) {
+    } catch {
+      setError('Error al obtener datos del servidor');
       setDbHistory([]);
     } finally {
       setLoading(false);
@@ -56,137 +68,201 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
     setProcessingId(id);
     try {
       await api.markExit(id);
-      setDbHistory(prev => prev.map(visit => 
-        visit.id === id 
-          ? { ...visit, exitTime: dayjs().toISOString() } 
-          : visit
-      ));
+      setDbHistory(prev =>
+        prev.map(v =>
+          v.id === id
+            ? { ...v, exitTime: dayjs().toISOString() }
+            : v
+        )
+      );
     } catch (err) {
-      console.error("Error al marcar salida:", err);
+      console.error('Error al marcar salida:', err);
     } finally {
       setProcessingId(null);
     }
   };
 
   const { filteredRecords, counts } = useMemo(() => {
-    const recordsOfTheDay = dbHistory.filter(record => {
-      const recordDate = dayjs(record.date).tz(CHILE_TZ).format('YYYY-MM-DD');
+    const recordsOfDay = dbHistory.filter(record => {
+      const recordDate = dayjs.utc(record.date).tz(CHILE_TZ).format('YYYY-MM-DD');
       return recordDate === filterDate;
     });
 
-    const inRecintoCount = recordsOfTheDay.filter(r => 
+    const inRecinto = recordsOfDay.filter(r =>
       r.plate && r.plate.trim() !== '' && !r.exitTime
     ).length;
 
-    const displayRecords = tabValue === 1 
-      ? recordsOfTheDay.filter(r => r.plate && r.plate.trim() !== '' && !r.exitTime)
-      : recordsOfTheDay;
+    const display =
+      tabValue === 1
+        ? recordsOfDay.filter(r =>
+            r.plate && r.plate.trim() !== '' && !r.exitTime
+          )
+        : recordsOfDay;
 
     return {
-      filteredRecords: displayRecords,
+      filteredRecords: display,
       counts: {
-        total: recordsOfTheDay.length,
-        inRecinto: inRecintoCount
+        total: recordsOfDay.length,
+        inRecinto
       }
     };
   }, [dbHistory, filterDate, tabValue]);
 
   return (
     <Stack spacing={3}>
-      {/* FILTRO DE FECHA - LARGO TOTAL (Grid 12) */}
-      <Box sx={{ width: '100%' }}>
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 2, 
-            borderRadius: 4, 
-            border: '1px solid', 
-            borderColor: 'divider',
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 2,
-            bgcolor: 'background.paper'
-          }}
-        >
-          <CalendarMonthIcon color="primary" />
-          <TextField 
-            type="date" 
-            label="Consultar Fecha"
-            variant="standard" 
-            fullWidth
-            value={filterDate} 
-            onChange={(e) => setFilterDate(e.target.value)} 
-            InputLabelProps={{ shrink: true }}
-            InputProps={{ disableUnderline: true }}
-            sx={{ 
-              '& .MuiInputBase-root': { fontSize: '1rem', fontWeight: 500 }
-            }}
-          />
-        </Paper>
-      </Box>
+      {/* Filtro fecha */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          borderRadius: 4,
+          border: '1px solid',
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2
+        }}
+      >
+        <CalendarMonthIcon color="primary" />
+        <TextField
+          type="date"
+          label="Consultar Fecha (Chile)"
+          variant="standard"
+          fullWidth
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+      </Paper>
 
-      {/* PESTAÑAS CENTRADAS */}
-      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-        <Tabs 
-          value={tabValue} 
-          onChange={(_, val) => setTabValue(val)} 
-          centered
-          sx={{ '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' } }}
-        >
-          <Tab 
-            label={`TODOS (${counts.total})`} 
-            icon={<ListIcon />} iconPosition="start"
-            sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 120, sm: 160 } }}
+      {error && (
+        <Alert severity="warning" variant="outlined">
+          {error}
+        </Alert>
+      )}
+
+      {/* Tabs */}
+      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Tabs value={tabValue} onChange={(_, val) => setTabValue(val)} centered>
+          <Tab
+            label={`TODOS (${counts.total})`}
+            icon={<ListIcon />}
+            iconPosition="start"
           />
-          <Tab 
-            label={`EN RECINTO (${counts.inRecinto})`} 
-            icon={<ListIcon />} iconPosition="start"
-            sx={{ 
-              textTransform: 'none', fontWeight: 600, minWidth: { xs: 120, sm: 160 },
+          <Tab
+            label={`EN RECINTO (${counts.inRecinto})`}
+            icon={<ListIcon />}
+            iconPosition="start"
+            sx={{
               color: counts.inRecinto > 0 ? 'error.main' : 'inherit'
             }}
           />
         </Tabs>
       </Box>
 
-      {/* LISTADO DE REGISTROS */}
+      {/* Listado */}
       {loading ? (
         <Box sx={{ py: 10, textAlign: 'center' }}>
-          <CircularProgress size={40} thickness={4} />
+          <CircularProgress />
         </Box>
       ) : (
         <Stack spacing={2}>
           {filteredRecords.map((record) => (
-            <Paper key={record.id} elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Paper
+              key={record.id}
+              elevation={0}
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
               <Stack spacing={2}>
-                <Grid container spacing={2} alignItems="center">
+                <Grid container spacing={2}>
+                  {/* Hora + Indicadores E/S */}
                   <Grid item xs={12}>
-                    <Stack direction="row" spacing={2} alignItems="center">
+                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                      {/* Entrada */}
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Box sx={{ width: 20, height: 20, bgcolor: 'success.main', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Typography variant="caption" sx={{ color: 'white', fontWeight: 900, fontSize: '0.65rem' }}>E</Typography>
+                        <Box
+                          sx={{
+                            width: 20,
+                            height: 20,
+                            bgcolor: 'success.main',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{ color: 'white', fontWeight: 900, fontSize: '0.65rem' }}
+                          >
+                            E
+                          </Typography>
                         </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                          {dayjs(record.date).tz(CHILE_TZ).format('HH:mm')}
+                        <Typography fontWeight={800}>
+                          {dayjs.utc(record.date).tz(CHILE_TZ).format('HH:mm')}
                         </Typography>
                       </Stack>
 
+                      {/* Salida */}
                       {record.exitTime && (
                         <Stack direction="row" spacing={1} alignItems="center">
-                          <Box sx={{ width: 20, height: 20, bgcolor: 'error.main', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Typography variant="caption" sx={{ color: 'white', fontWeight: 900, fontSize: '0.65rem' }}>S</Typography>
+                          <Box
+                            sx={{
+                              width: 20,
+                              height: 20,
+                              bgcolor: 'error.main',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{ color: 'white', fontWeight: 900, fontSize: '0.65rem' }}
+                            >
+                              S
+                            </Typography>
                           </Box>
-                          <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.secondary' }}>
-                            {dayjs(record.exitTime).tz(CHILE_TZ).format('HH:mm')}
+                          <Typography fontWeight={800} color="text.secondary">
+                            {dayjs.utc(record.exitTime).tz(CHILE_TZ).format('HH:mm')}
                           </Typography>
                         </Stack>
                       )}
 
-                      <Chip label={record.type.toUpperCase()} size="small" sx={{ fontWeight: 800, fontSize: '0.6rem', height: 20, borderRadius: '4px' }} />
+                      <Chip
+                        label={record.type.toUpperCase()}
+                        size="small"
+                        sx={{ fontWeight: 800 }}
+                      />
 
+                      {/* Patente estilo premium */}
                       {record.plate && (
-                        <Box sx={{ height: 20, bgcolor: 'grey.200', px: 1, borderRadius: '4px', border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="caption" sx={{ fontWeight: 900, color: 'grey.900', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                        <Box
+                          sx={{
+                            height: 24,
+                            bgcolor: 'grey.200',
+                            px: 1.5,
+                            borderRadius: '4px',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 900,
+                              fontFamily: 'monospace',
+                              fontSize: '0.8rem'
+                            }}
+                          >
                             {record.plate.toUpperCase()}
                           </Typography>
                         </Box>
@@ -194,24 +270,34 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                     </Stack>
                   </Grid>
 
+                  {/* Casa */}
                   <Grid item xs={12} sm={4}>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <HomeIcon sx={{ fontSize: 18, color: 'action.active' }} />
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <HomeIcon fontSize="small" />
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>Casa {record.houseNumber}</Typography>
-                        <Typography variant="caption" color="text.secondary">{record.residentName}</Typography>
+                        <Typography fontWeight={800}>
+                          Casa {record.houseNumber}
+                        </Typography>
+                        <Typography variant="caption">
+                          {record.residentName}
+                        </Typography>
                       </Box>
                     </Stack>
                   </Grid>
 
+                  {/* Visitante */}
                   <Grid item xs={12} sm={8}>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <PersonIcon sx={{ fontSize: 18, color: 'action.active' }} />
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <PersonIcon fontSize="small" />
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{record.visitorName}</Typography>
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          <BadgeIcon sx={{ fontSize: 12, color: 'text.disabled' }} />
-                          <Typography variant="caption" color="text.secondary">{record.visitorRut}</Typography>
+                        <Typography fontWeight={700}>
+                          {record.visitorName}
+                        </Typography>
+                        <Stack direction="row" spacing={0.5}>
+                          <BadgeIcon sx={{ fontSize: 12 }} />
+                          <Typography variant="caption">
+                            {record.visitorRut}
+                          </Typography>
                         </Stack>
                       </Box>
                     </Stack>
@@ -220,11 +306,18 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
 
                 {!record.exitTime && record.plate && (
                   <Button
-                    fullWidth variant="contained" color="error" size="small"
+                    fullWidth
+                    variant="contained"
+                    color="error"
+                    size="small"
                     onClick={() => handleMarkExit(record.id)}
                     disabled={processingId === record.id}
-                    startIcon={processingId === record.id ? <CircularProgress size={14} color="inherit" /> : <ExitIcon />}
-                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 800, py: 1 }}
+                    startIcon={
+                      processingId === record.id
+                        ? <CircularProgress size={14} color="inherit" />
+                        : <ExitIcon />
+                    }
+                    sx={{ borderRadius: 2, fontWeight: 800 }}
                   >
                     MARCAR SALIDA
                   </Button>
@@ -232,10 +325,10 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
               </Stack>
             </Paper>
           ))}
-          
+
           {filteredRecords.length === 0 && (
-            <Box sx={{ py: 10, textAlign: 'center', opacity: 0.5 }}>
-              <Typography variant="body1">No hay registros para mostrar</Typography>
+            <Box sx={{ py: 8, textAlign: 'center', opacity: 0.5 }}>
+              <Typography>No hay registros para mostrar</Typography>
             </Box>
           )}
         </Stack>

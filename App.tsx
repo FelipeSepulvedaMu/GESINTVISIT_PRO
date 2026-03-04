@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, 
@@ -7,7 +8,13 @@ import { LogoutRounded, AdminPanelSettings as AdminPanelSettingsIcon } from '@mu
 import LoginForm from './components/LoginForm';
 import Dashboard from './components/Dashboard';
 import { User, VisitRecord } from './types';
-import { INITIAL_HISTORY } from './constants';
+import { api } from './api';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const theme = createTheme({
   palette: {
@@ -42,9 +49,24 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [history, setHistory] = useState<VisitRecord[]>([]);
 
+  const fetchInitialHistory = async () => {
+    try {
+      const today = dayjs().format('YYYY-MM-DD');
+      const data = await api.getVisits(today);
+      
+      // Mantenemos la fecha ISO original para que los componentes la manejen
+      setHistory(data);
+    } catch (err) {
+      console.error('Error al obtener visitas iniciales:', err);
+      setHistory([]);
+    }
+  };
+
   useEffect(() => {
-    setHistory(INITIAL_HISTORY);
-  }, []);
+    if (user) {
+      fetchInitialHistory();
+    }
+  }, [user]);
 
   const handleLogin = (rut: string, name: string) => setUser({ rut, name });
   const handleLogout = () => setUser(null);
@@ -78,7 +100,8 @@ const App: React.FC = () => {
         </AppBar>
 
         <Container maxWidth="sm" sx={{ py: 4, flexGrow: 1 }}>
-          <Fade in timeout={500}>
+          {/* Explicitly passing 'in={true}' to avoid ambiguity and ensure single child recognition */}
+          <Fade in={true} timeout={500}>
             <Box>
               <Dashboard user={user} history={history} onAddVisit={addVisit} />
             </Box>

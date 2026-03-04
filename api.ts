@@ -1,13 +1,42 @@
 import { VisitRecord, House, User } from './types';
 
-// En desarrollo usamos localhost:3001, en producción se usará la URL del servidor
-//const API_URL = import.meta.env.VITE_API_URL;
-const API_URL = 'http://localhost:3001/api';
+/**
+ * URL del backend definida por entorno (Vercel)
+ */
+const API_URL = import.meta.env.VITE_API_URL;
 
+if (!API_URL) {
+  throw new Error('VITE_API_URL no está definida en el entorno');
+}
 
 /**
- * Mapeador universal: Asegura que los datos de la DB (snake_case)
- * funcionen con la aplicación React (camelCase).
+ * Manejo seguro de respuestas
+ */
+async function handleResponse(response: Response) {
+  const contentType = response.headers.get('content-type');
+
+  if (contentType && contentType.includes('application/json')) {
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `Error ${response.status}`);
+    }
+
+    return data;
+  }
+
+  const text = await response.text();
+  console.error('Respuesta no-JSON del servidor:', text.substring(0, 200));
+
+  if (response.status === 404) {
+    throw new Error(`Error 404: ruta no encontrada en ${API_URL}`);
+  }
+
+  throw new Error(`Error del servidor (${response.status})`);
+}
+
+/**
+ * Mapeo de visitas
  */
 const mapVisit = (v: any): VisitRecord => ({
   id: v.id,
@@ -19,14 +48,10 @@ const mapVisit = (v: any): VisitRecord => ({
   visitorRut: v.visitor_rut || v.visitorRut,
   plate: v.plate,
   conciergeName: v.concierge_name || v.conciergeName,
-  // AGREGADO: Mapeo de la hora de salida
   exitTime: v.exit_time || v.exitTime
 });
 
 export const api = {
-  /**
-   * Autenticación centralizada en el Backend
-   */
   async login(rut: string, password: string): Promise<User> {
     const response = await fetch(`${API_URL}/login-visit`, {
       method: 'POST',
@@ -34,73 +59,47 @@ export const api = {
       body: JSON.stringify({ rut, password })
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Error de autenticación');
-    }
-
-    return await response.json();
+    return handleResponse(response);
   },
 
-  /**
-   * AGREGADO: Marcar salida de visita
-   */
   async markExit(id: string): Promise<VisitRecord> {
     const response = await fetch(`${API_URL}/visits/${id}/exit`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' }
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Error al marcar salida');
-    }
-
-    const result = await response.json();
+    const result = await handleResponse(response);
     return mapVisit(result);
   },
 
-  /**
-   * Obtiene residentes vía Backend
-   */
   async getHouses(): Promise<House[]> {
     try {
       const response = await fetch(`${API_URL}/visits/houses`);
-      if (!response.ok) throw new Error('No se pudo conectar con el servidor de datos');
-      const data = await response.json();
-      
-      // Mapeo refinado para usar owner_name según el esquema public.houses
+      const data = await handleResponse(response);
+
       return data.map((h: any) => ({
         id: h.id,
         number: h.number,
-        // Usamos owner_name como prioridad absoluta
-        residentName: h.owner_name || h.resident_name || h.residentName || 'Sin nombre registrado',
+        residentName: h.owner_name || h.resident_name || 'Sin nombre',
         phone: h.phone || ''
       }));
     } catch (error) {
-      console.error("Error cargando casas:", error);
+      console.error('Error API getHouses:', error);
       return [];
     }
   },
 
-  /**
-   * Obtiene historial vía Backend
-   */
   async getVisits(date: string): Promise<VisitRecord[]> {
     try {
       const response = await fetch(`${API_URL}/visits?date=${date}`);
-      if (!response.ok) return [];
-      const data = await response.json();
+      const data = await handleResponse(response);
       return data.map(mapVisit);
     } catch (error) {
-      console.error("Error cargando historial:", error);
+      console.error('Error API getVisits:', error);
       return [];
     }
   },
 
-  /**
-   * REGISTRO DE VISITA: Flujo obligatorio Frontend -> Backend -> Supabase
-   */
   async createVisit(visit: Partial<VisitRecord>): Promise<VisitRecord> {
     const response = await fetch(`${API_URL}/visits`, {
       method: 'POST',
@@ -108,12 +107,7 @@ export const api = {
       body: JSON.stringify(visit)
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || result.message || 'Error al procesar el registro en el servidor');
-    }
-
+    const result = await handleResponse(response);
     return mapVisit(result);
   }
 };
