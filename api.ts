@@ -1,8 +1,9 @@
-
 import { VisitRecord, House, User } from './types';
 
 // En desarrollo usamos localhost:3001, en producción se usará la URL del servidor
+//const API_URL = import.meta.env.VITE_API_URL;
 const API_URL = 'http://localhost:3001/api';
+
 
 /**
  * Mapeador universal: Asegura que los datos de la DB (snake_case)
@@ -17,7 +18,9 @@ const mapVisit = (v: any): VisitRecord => ({
   visitorName: v.visitor_name || v.visitorName,
   visitorRut: v.visitor_rut || v.visitorRut,
   plate: v.plate,
-  conciergeName: v.concierge_name || v.conciergeName
+  conciergeName: v.concierge_name || v.conciergeName,
+  // AGREGADO: Mapeo de la hora de salida
+  exitTime: v.exit_time || v.exitTime
 });
 
 export const api = {
@@ -37,6 +40,24 @@ export const api = {
     }
 
     return await response.json();
+  },
+
+  /**
+   * AGREGADO: Marcar salida de visita
+   */
+  async markExit(id: string): Promise<VisitRecord> {
+    const response = await fetch(`${API_URL}/visits/${id}/exit`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Error al marcar salida');
+    }
+
+    const result = await response.json();
+    return mapVisit(result);
   },
 
   /**
