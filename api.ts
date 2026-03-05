@@ -1,9 +1,9 @@
 import { VisitRecord, House, User } from './types';
 
 /**
- * URL del backend definida por entorno (Vercel)
+ * URL del backend para producción
  */
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = 'https://backend-api-tu-dominio.com'; // URL PRODUCTIVA
 
 if (!API_URL) {
   throw new Error('VITE_API_URL no está definida en el entorno');
@@ -56,7 +56,8 @@ export const api = {
     const response = await fetch(`${API_URL}/login-visit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rut, password })
+      body: JSON.stringify({ rut, password }),
+      credentials: 'include' // envía cookies de sesión
     });
 
     return handleResponse(response);
@@ -65,7 +66,8 @@ export const api = {
   async markExit(id: string): Promise<VisitRecord> {
     const response = await fetch(`${API_URL}/visits/${id}/exit`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include' // envía cookies de sesión
     });
 
     const result = await handleResponse(response);
@@ -74,7 +76,9 @@ export const api = {
 
   async getHouses(): Promise<House[]> {
     try {
-      const response = await fetch(`${API_URL}/visits/houses`);
+      const response = await fetch(`${API_URL}/visits/houses`, {
+        credentials: 'include'
+      });
       const data = await handleResponse(response);
 
       return data.map((h: any) => ({
@@ -91,7 +95,9 @@ export const api = {
 
   async getVisits(date: string): Promise<VisitRecord[]> {
     try {
-      const response = await fetch(`${API_URL}/visits?date=${date}`);
+      const response = await fetch(`${API_URL}/visits?date=${date}`, {
+        credentials: 'include'
+      });
       const data = await handleResponse(response);
       return data.map(mapVisit);
     } catch (error) {
@@ -104,7 +110,8 @@ export const api = {
     const response = await fetch(`${API_URL}/visits`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(visit)
+      body: JSON.stringify(visit),
+      credentials: 'include'
     });
 
     const result = await handleResponse(response);
