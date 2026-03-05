@@ -1,9 +1,10 @@
 import { VisitRecord, House, User } from './types';
 
 /**
- * URL del backend para producción
+ * URL del backend definida por entorno (Vercel)
+ * ⚠️ IMPORTANTE: En Vercel definir VITE_API_URL en Variables de Entorno
  */
-const API_URL = 'https://backend-api-tu-dominio.com'; // URL PRODUCTIVA
+const API_URL = import.meta.env.VITE_API_URL || 'https://backend-api-tu-dominio.com';
 
 if (!API_URL) {
   throw new Error('VITE_API_URL no está definida en el entorno');
@@ -67,7 +68,7 @@ export const api = {
     const response = await fetch(`${API_URL}/visits/${id}/exit`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include' // envía cookies de sesión
+      credentials: 'include'
     });
 
     const result = await handleResponse(response);
