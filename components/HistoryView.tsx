@@ -54,7 +54,7 @@ const maskPlate = (plate: string): string => {
 };
 
 const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }) => {
-    console.log("Usuario actual en el Historial:", user);
+  console.log("Usuario actual en el Historial:", user);
   const [dbHistory, setDbHistory] = useState<VisitRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -221,25 +221,36 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
       ) : (
         <Stack spacing={2}>
           {filteredRecords.map((record) => {
-            // 🕵️‍♂️ LÓGICA DE EXTRACCIÓN DINÁMICA DE TAGS EN EL NOMBRE
+            // 🕵️‍♂️ LÓGICA DE EXTRACCIÓN DINÁMICA DE CATEGORÍAS
             let displayType = record.type ? record.type.toUpperCase() : 'VISITA';
             let cleanVisitorName = record.visitorName || '';
 
-            // Si el nombre contiene un prefijo entre corchetes como [TRANSPORTE]
+            // 🚀 CAPTURA CUALQUIER TEXTO EN CORCHETES: [TAXI], [PAQUETE], etc.
             if (cleanVisitorName.startsWith('[')) {
               const match = cleanVisitorName.match(/^\[(.*?)\]\s*(.*)$/);
               if (match) {
-                displayType = match[1].toUpperCase(); // Extrae "TRANSPORTE" para la caluga
-                cleanVisitorName = match[2];         // Deja solo "PRUEBA" para el nombre
+                displayType = match[1].toUpperCase(); // Extrae exactamente la palabra de adentro
+                cleanVisitorName = match[2];         // Limpia el nombre del visitante
               }
             }
 
-            // Asignación de color dinámico para la caluga según el tipo
+            // 🎨 ASIGNACIÓN INTELIGENTE DE COLORES SEGÚN EL TIPO EXACTO
             const getChipColor = (type: string) => {
-              if (type.includes('TRANSPORTE')) return 'secondary';
-              if (type.includes('DELIVERY')) return 'warning';
-              if (type.includes('PROVEEDOR')) return 'info';
-              return 'default';
+              switch (type) {
+                case 'TAXI':
+                case 'TRANSPORTE':
+                  return 'secondary'; // Azul / Morado
+                case 'DELIVERY':
+                case 'PAQUETE':
+                case 'DELIVERY / PAQUETE':
+                  return 'warning';   // Naranja / Amarillo
+                case 'PROVEEDOR':
+                case 'SERVICIOS':
+                  return 'info';      // Celeste
+                case 'VISITA':
+                default:
+                  return 'default';   // Gris neutral
+              }
             };
 
             return (
@@ -310,7 +321,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                           </Stack>
                         )}
 
-                        {/* 🚀 CALUGA DINÁMICA: Ahora renderiza el tipo correcto y con color asignado */}
+                        {/* 🚀 CALUGA 100% DINÁMICA Y COLOREADA */}
                         <Chip
                           label={displayType}
                           size="small"
