@@ -234,7 +234,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
               }
             }
 
-            // 🎯 FORZAMOS A QUE RECONOZCA EXACTAMENTE TUS 6 TIPOS OFICIALES
+            // 🎯 FORZAMOS A QUE RECONOZCA EXACTAMENTE TUS 6 TIPOS OFICIALES Y SUS COLORES
             let displayType = 'VISITA';
             let chipColor: 'default' | 'warning' | 'secondary' | 'info' | 'success' = 'default';
 
@@ -310,7 +310,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                                 borderRadius: '4px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center'
+                                centerContent: 'center'
                               }}
                             >
                               <Typography
@@ -326,7 +326,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                           </Stack>
                         )}
 
-                        {/* 🚀 CALUGA OFICIAL Y HOMOLOGADA */}
+                        {/* 🚀 CALUGA OFICIAL Y HOMOLOGADA (Muestra los 6 tipos exactos) */}
                         <Chip
                           label={displayType}
                           size="small"
@@ -363,17 +363,46 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                       </Stack>
                     </Grid>
 
-                    {/* Casa */}
+                    {/* Casa + Estado de Autorización */}
                     <Grid item xs={12} sm={4}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <HomeIcon fontSize="small" />
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <HomeIcon fontSize="small" sx={{ mt: 0.3 }} />
                         <Box>
                           <Typography fontWeight={800}>
                             Casa {record.houseNumber}
                           </Typography>
-                          <Typography variant="caption">
+                          <Typography variant="caption" display="block" sx={{ mb: 1 }}>
                             {record.residentName}
                           </Typography>
+                          
+                          {/* 🚀 INDICADOR DE AUTORIZACIÓN (Preparado para true/false/null de la BD) */}
+                          {record.resident_confirmed === true && (
+                            <Chip 
+                              label="AUTORIZADO POR RESIDENTE" 
+                              size="small" 
+                              color="success" 
+                              variant="outlined"
+                              sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+                            />
+                          )}
+                          {record.resident_confirmed === false && (
+                            <Chip 
+                              label="SIN CONFIRMACIÓN / MANUAL" 
+                              size="small" 
+                              color="error" 
+                              variant="outlined"
+                              sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+                            />
+                          )}
+                          {record.resident_confirmed === null && (
+                            <Chip 
+                              label="S/D" 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20, opacity: 0.5 }}
+                              title="Registro antiguo o sin datos de confirmación"
+                            />
+                          )}
                         </Box>
                       </Stack>
                     </Grid>
@@ -430,6 +459,5 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
     </Stack>
   );
 };
-
 
 export default HistoryView;
