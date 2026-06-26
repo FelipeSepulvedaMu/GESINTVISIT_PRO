@@ -220,55 +220,51 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
         </Box>
       ) : (
         <Stack spacing={2}>
-          {filteredRecords.map((record) => (
-            <Paper
-              key={record.id}
-              elevation={0}
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: 'divider'
-              }}
-            >
-              <Stack spacing={2}>
-                <Grid container spacing={2}>
-                  {/* Hora + Indicadores E/S */}
-                  <Grid item xs={12}>
-                    <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-                      {/* Entrada */}
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Box
-                          sx={{
-                            width: 20,
-                            height: 20,
-                            bgcolor: 'success.main',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            sx={{ color: 'white', fontWeight: 900, fontSize: '0.65rem' }}
-                          >
-                            E
-                          </Typography>
-                        </Box>
-                        <Typography fontWeight={800}>
-                          {dayjs.utc(record.date).tz(CHILE_TZ).format('HH:mm')}
-                        </Typography>
-                      </Stack>
+          {filteredRecords.map((record) => {
+            // 🕵️‍♂️ LÓGICA DE EXTRACCIÓN DINÁMICA DE TAGS EN EL NOMBRE
+            let displayType = record.type ? record.type.toUpperCase() : 'VISITA';
+            let cleanVisitorName = record.visitorName || '';
 
-                      {/* Salida */}
-                      {record.exitTime && (
+            // Si el nombre contiene un prefijo entre corchetes como [TRANSPORTE]
+            if (cleanVisitorName.startsWith('[')) {
+              const match = cleanVisitorName.match(/^\[(.*?)\]\s*(.*)$/);
+              if (match) {
+                displayType = match[1].toUpperCase(); // Extrae "TRANSPORTE" para la caluga
+                cleanVisitorName = match[2];         // Deja solo "PRUEBA" para el nombre
+              }
+            }
+
+            // Asignación de color dinámico para la caluga según el tipo
+            const getChipColor = (type: string) => {
+              if (type.includes('TRANSPORTE')) return 'secondary';
+              if (type.includes('DELIVERY')) return 'warning';
+              if (type.includes('PROVEEDOR')) return 'info';
+              return 'default';
+            };
+
+            return (
+              <Paper
+                key={record.id}
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider'
+                }}
+              >
+                <Stack spacing={2}>
+                  <Grid container spacing={2}>
+                    {/* Hora + Indicadores E/S */}
+                    <Grid item xs={12}>
+                      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+                        {/* Entrada */}
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Box
                             sx={{
                               width: 20,
                               height: 20,
-                              bgcolor: 'error.main',
+                              bgcolor: 'success.main',
                               borderRadius: '4px',
                               display: 'flex',
                               alignItems: 'center',
@@ -279,105 +275,134 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                               variant="caption"
                               sx={{ color: 'white', fontWeight: 900, fontSize: '0.65rem' }}
                             >
-                              S
+                              E
                             </Typography>
                           </Box>
-                          <Typography fontWeight={800} color="text.secondary">
-                            {dayjs.utc(record.exitTime).tz(CHILE_TZ).format('HH:mm')}
+                          <Typography fontWeight={800}>
+                            {dayjs.utc(record.date).tz(CHILE_TZ).format('HH:mm')}
                           </Typography>
                         </Stack>
-                      )}
 
-                      <Chip
-                        label={record.type.toUpperCase()}
-                        size="small"
-                        sx={{ fontWeight: 800 }}
-                      />
+                        {/* Salida */}
+                        {record.exitTime && (
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Box
+                              sx={{
+                                width: 20,
+                                height: 20,
+                                bgcolor: 'error.main',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ color: 'white', fontWeight: 900, fontSize: '0.65rem' }}
+                              >
+                                S
+                              </Typography>
+                            </Box>
+                            <Typography fontWeight={800} color="text.secondary">
+                              {dayjs.utc(record.exitTime).tz(CHILE_TZ).format('HH:mm')}
+                            </Typography>
+                          </Stack>
+                        )}
 
-                      {/* Patente estilo premium - 🚀 Enmascarada */}
-                      {record.plate && (
-                        <Box
-                          sx={{
-                            height: 24,
-                            bgcolor: 'grey.200',
-                            px: 1.5,
-                            borderRadius: '4px',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            display: 'flex',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
+                        {/* 🚀 CALUGA DINÁMICA: Ahora renderiza el tipo correcto y con color asignado */}
+                        <Chip
+                          label={displayType}
+                          size="small"
+                          color={getChipColor(displayType) as any}
+                          sx={{ fontWeight: 800 }}
+                        />
+
+                        {/* Patente estilo premium - 🚀 Enmascarada */}
+                        {record.plate && (
+                          <Box
                             sx={{
-                              fontWeight: 900,
-                              fontFamily: 'monospace',
-                              fontSize: '0.8rem'
+                              height: 24,
+                              bgcolor: 'grey.200',
+                              px: 1.5,
+                              borderRadius: '4px',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              display: 'flex',
+                              alignItems: 'center'
                             }}
                           >
-                            {maskPlate(record.plate)}
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: 900,
+                                fontFamily: 'monospace',
+                                fontSize: '0.8rem'
+                              }}
+                            >
+                              {maskPlate(record.plate)}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Stack>
+                    </Grid>
+
+                    {/* Casa */}
+                    <Grid item xs={12} sm={4}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <HomeIcon fontSize="small" />
+                        <Box>
+                          <Typography fontWeight={800}>
+                            Casa {record.houseNumber}
+                          </Typography>
+                          <Typography variant="caption">
+                            {record.residentName}
                           </Typography>
                         </Box>
-                      )}
-                    </Stack>
-                  </Grid>
+                      </Stack>
+                    </Grid>
 
-                  {/* Casa */}
-                  <Grid item xs={12} sm={4}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <HomeIcon fontSize="small" />
-                      <Box>
-                        <Typography fontWeight={800}>
-                          Casa {record.houseNumber}
-                        </Typography>
-                        <Typography variant="caption">
-                          {record.residentName}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Grid>
-
-                  {/* Visitante - 🚀 RUT Enmascarado */}
-                  <Grid item xs={12} sm={8}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <PersonIcon fontSize="small" />
-                      <Box>
-                        <Typography fontWeight={700}>
-                          {record.visitorName}
-                        </Typography>
-                        <Stack direction="row" spacing={0.5}>
-                          <BadgeIcon sx={{ fontSize: 12 }} />
-                          <Typography variant="caption">
-                            {maskRut(record.visitorRut)}
+                    {/* Visitante - 🚀 Nombre limpio y RUT Enmascarado */}
+                    <Grid item xs={12} sm={8}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <PersonIcon fontSize="small" />
+                        <Box>
+                          <Typography fontWeight={700}>
+                            {cleanVisitorName}
                           </Typography>
-                        </Stack>
-                      </Box>
-                    </Stack>
+                          <Stack direction="row" spacing={0.5}>
+                            <BadgeIcon sx={{ fontSize: 12 }} />
+                            <Typography variant="caption">
+                              {maskRut(record.visitorRut)}
+                            </Typography>
+                          </Stack>
+                        </Box>
+                      </Stack>
+                    </Grid>
                   </Grid>
-                </Grid>
 
-                {!record.exitTime && record.plate && (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    color="error"
-                    size="small"
-                    onClick={() => handleMarkExit(record.id)}
-                    disabled={processingId === record.id}
-                    startIcon={
-                      processingId === record.id
-                        ? <CircularProgress size={14} color="inherit" />
-                        : <ExitIcon />
-                    }
-                    sx={{ borderRadius: 2, fontWeight: 800 }}
-                  >
-                    MARCAR SALIDA
-                  </Button>
-                )}
-              </Stack>
-            </Paper>
-          ))}
+                  {!record.exitTime && record.plate && (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="error"
+                      size="small"
+                      onClick={() => handleMarkExit(record.id)}
+                      disabled={processingId === record.id}
+                      startIcon={
+                        processingId === record.id
+                          ? <CircularProgress size={14} color="inherit" />
+                          : <ExitIcon />
+                      }
+                      sx={{ borderRadius: 2, fontWeight: 800 }}
+                    >
+                      MARCAR SALIDA
+                    </Button>
+                  )}
+                </Stack>
+              </Paper>
+            );
+          })}
 
           {filteredRecords.length === 0 && (
             <Box sx={{ py: 8, textAlign: 'center', opacity: 0.5 }}>
