@@ -431,4 +431,5 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
   );
 };
 
+
 export default HistoryView;
