@@ -221,37 +221,42 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
       ) : (
         <Stack spacing={2}>
           {filteredRecords.map((record) => {
-            // 🕵️‍♂️ LÓGICA DE EXTRACCIÓN DINÁMICA DE CATEGORÍAS
-            let displayType = record.type ? record.type.toUpperCase() : 'VISITA';
+            // 🕵️‍♂️ LÓGICA DE EXTRACCIÓN Y NORMALIZACIÓN DE LAS 6 CATEGORÍAS
+            let rawTag = record.type ? record.type.toUpperCase() : 'VISITA';
             let cleanVisitorName = record.visitorName || '';
 
-            // 🚀 CAPTURA CUALQUIER TEXTO EN CORCHETES: [TAXI], [PAQUETE], etc.
+            // Extraemos el corchete de la base de datos si existe
             if (cleanVisitorName.startsWith('[')) {
               const match = cleanVisitorName.match(/^\[(.*?)\]\s*(.*)$/);
               if (match) {
-                displayType = match[1].toUpperCase(); // Extrae exactamente la palabra de adentro
-                cleanVisitorName = match[2];         // Limpia el nombre del visitante
+                rawTag = match[1].toUpperCase();
+                cleanVisitorName = match[2]; // Deja el nombre limpio
               }
             }
 
-            // 🎨 ASIGNACIÓN INTELIGENTE DE COLORES SEGÚN EL TIPO EXACTO
-            const getChipColor = (type: string) => {
-              switch (type) {
-                case 'TAXI':
-                case 'TRANSPORTE':
-                  return 'secondary'; // Azul / Morado
-                case 'DELIVERY':
-                case 'PAQUETE':
-                case 'DELIVERY / PAQUETE':
-                  return 'warning';   // Naranja / Amarillo
-                case 'PROVEEDOR':
-                case 'SERVICIOS':
-                  return 'info';      // Celeste
-                case 'VISITA':
-                default:
-                  return 'default';   // Gris neutral
-              }
-            };
+            // 🎯 FORZAMOS A QUE RECONOZCA EXACTAMENTE TUS 6 TIPOS OFICIALES
+            let displayType = 'VISITA';
+            let chipColor: 'default' | 'warning' | 'secondary' | 'info' | 'success' = 'default';
+
+            if (rawTag.includes('PAQUETE') || rawTag.includes('ENCOMIENDA')) {
+              displayType = 'PAQUETE';
+              chipColor = 'warning'; // Naranja
+            } else if (rawTag.includes('DELIVERY')) {
+              displayType = 'DELIVERY';
+              chipColor = 'warning'; // Naranja
+            } else if (rawTag.includes('UBER') || rawTag.includes('TAXI') || rawTag.includes('TRANSPORTE')) {
+              displayType = 'UBER/TAXI';
+              chipColor = 'secondary'; // Morado / Azul
+            } else if (rawTag.includes('SERVICIOS')) {
+              displayType = 'SERVICIOS';
+              chipColor = 'info'; // Celeste
+            } else if (rawTag.includes('TECNICO') || rawTag.includes('TÉCNICO')) {
+              displayType = 'TECNICO';
+              chipColor = 'success'; // Verde
+            } else {
+              displayType = 'VISITA';
+              chipColor = 'default'; // Gris
+            }
 
             return (
               <Paper
@@ -321,11 +326,11 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                           </Stack>
                         )}
 
-                        {/* 🚀 CALUGA 100% DINÁMICA Y COLOREADA */}
+                        {/* 🚀 CALUGA OFICIAL Y HOMOLOGADA */}
                         <Chip
                           label={displayType}
                           size="small"
-                          color={getChipColor(displayType) as any}
+                          color={chipColor}
                           sx={{ fontWeight: 800 }}
                         />
 
