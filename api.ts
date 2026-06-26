@@ -4,7 +4,8 @@ import { VisitRecord, House, User } from './types';
  * URL del backend definida por entorno (Vercel)
  * ⚠️ IMPORTANTE: En Vercel definir VITE_API_URL en Variables de Entorno
  */
-const API_URL = import.meta.env.VITE_API_URL || 'https://backend-api-tu-dominio.com';
+//const API_URL = import.meta.env.VITE_API_URL || 'https://backend-api-tu-dominio.com';
+const API_URL = 'http://localhost:3001/api';
 
 if (!API_URL) {
   throw new Error('VITE_API_URL no está definida en el entorno');
@@ -86,7 +87,8 @@ export const api = {
         id: h.id,
         number: h.number,
         residentName: h.owner_name || h.resident_name || 'Sin nombre',
-        phone: h.phone || ''
+        phone: h.phone || '',
+        phone2: h.phone2 || '' // 🚀 Mapeo de la nueva columna de Supabase
       }));
     } catch (error) {
       console.error('Error API getHouses:', error);

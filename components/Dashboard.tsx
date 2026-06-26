@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Paper, Tabs, Tab } from '@mui/material';
+import { Box, Paper, Tabs, Tab, CircularProgress, Typography } from '@mui/material';
 import RegistrationForm from './RegistrationForm';
 import HistoryView from './HistoryView';
 import { PostAddRounded as PostAddRoundedIcon, HistoryRounded as HistoryRoundedIcon } from '@mui/icons-material';
@@ -45,7 +45,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, history, onAddVisit }) => {
             onGoToHistory={() => setActiveTab(1)} 
           />
         ) : (
-          <HistoryView history={history} />
+          /* 🔐 Verificamos que el usuario exista antes de renderizar para evitar el 'undefined' */
+          user ? (
+            <HistoryView history={history} user={user} /> // 🚀 ¡Inyectado con éxito!
+          ) : (
+            <Box sx={{ py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <CircularProgress size={30} />
+              <Typography variant="body2" color="text.secondary">Cargando permisos de usuario...</Typography>
+            </Box>
+          )
         )}
       </Box>
     </Box>

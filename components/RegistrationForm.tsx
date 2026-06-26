@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, TextField, Button, Typography, Paper, Autocomplete, 
   Stack, Divider, Snackbar, Alert, CircularProgress,
-  InputAdornment
+  InputAdornment, ToggleButton, ToggleButtonGroup, Grid2 as Grid
 } from '@mui/material';
 
 import { 
@@ -12,7 +12,12 @@ import {
   DirectionsCarFilledRounded as CarIcon,
   PersonRounded as PersonIcon,
   MeetingRoomRounded as MeetingRoomIcon,
-  DeliveryDiningRounded as DeliveryIcon
+  DeliveryDiningRounded as DeliveryIcon,
+  CheckCircleRounded as CheckIcon,
+  CancelRounded as CancelIcon,
+  LocalTaxiRounded as TaxiIcon,
+  HandymanRounded as MaintenanceIcon,
+  EngineeringRounded as ServiceIcon
 } from '@mui/icons-material';
 
 import { User, VisitRecord, House, VisitType } from '../types';
@@ -28,14 +33,49 @@ interface RegistrationFormProps {
   onGoToHistory: () => void;
 }
 
+// Definimos el tipo de estado temporal con las 6 opciones visuales
+type TemporalVisitType = 'visita' | 'encomienda' | 'delivery' | 'transporte' | 'servicio' | 'mantencion';
+
+// 🚀 FORMATEADOR DE RUT CHILENO EN TIEMPO REAL (Solo permite números y letra K)
+const formatChileanRut = (value: string): string => {
+  let clean = value.replace(/[^0-9kK]/g, '').toUpperCase();
+  
+  if (clean.length > 9) {
+    clean = clean.slice(0, 9);
+  }
+
+  if (clean.length <= 1) return clean;
+
+  const dv = clean.slice(-1);
+  const body = clean.slice(0, -1);
+
+  let formattedBody = '';
+  if (body.length > 5) {
+    formattedBody = body.replace(/^(\d{1,2})(\d{3})(\d{3})$/, '$1.$2.$3');
+    if (formattedBody === body) {
+      formattedBody = body.replace(/^(\d{1,2})(\d{3})$/, '$1.$2');
+    }
+  } else if (body.length > 2) {
+    formattedBody = body.replace(/^(\d{1,2})(\d{3})$/, '$1.$2');
+  } else {
+    formattedBody = body;
+  }
+
+  return `${formattedBody}-${dv}`;
+};
+
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit }) => {
   const [houses, setHouses] = useState<House[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(true);
   const [selectedHouse, setSelectedHouse] = useState<House | null>(null);
-  const [type, setType] = useState<VisitType | 'delivery'>('visita');
+  
+  // Estado temporal con las opciones visuales de la cuadrícula
+  const [displayType, setDisplayType] = useState<TemporalVisitType>('visita');
+  
   const [visitorName, setVisitorName] = useState('');
   const [visitorRut, setVisitorRut] = useState('');
   const [plate, setPlate] = useState('');
+  const [residentConfirmed, setResidentConfirmed] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({
     open: false, message: '', severity: 'success'
@@ -57,15 +97,19 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
     try {
       const isoDate = dayjs().utc().format();
 
+      // Mapeo seguro para mantener los tipos originales de la base de datos
+      const apiType: VisitType = displayType === 'encomienda' ? 'encomienda' : 'visita';
+
       const newVisit = await api.createVisit({
         date: isoDate,
         houseNumber: selectedHouse.number,
         residentName: selectedHouse.residentName,
-        type: type as VisitType,
-        visitorName,
+        type: apiType, 
+        visitorName: `[${displayType.toUpperCase()}] ${visitorName}`, 
         visitorRut,
         plate,
-        conciergeName: user.name
+        conciergeName: user.name,
+        residentConfirmed
       });
 
       onAddVisit(newVisit);
@@ -80,6 +124,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
       setVisitorRut('');
       setPlate('');
       setSelectedHouse(null);
+      setResidentConfirmed(true);
+      setDisplayType('visita');
 
     } catch (err: any) {
       setSnackbar({
@@ -126,62 +172,154 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
             />
 
             {selectedHouse && (
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: '#f8f9fa' }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-                  RESIDENTE
-                </Typography>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
-                  <Typography sx={{ fontWeight: 700 }}>
-                    {selectedHouse.residentName}
+              <Stack spacing={2}>
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: '#f8f9fa' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    RESIDENTE
                   </Typography>
-                  {selectedHouse.phone && (
-                    <Button
-                      href={`tel:${selectedHouse.phone.replace(/\s+/g, '')}`}
-                      variant="contained"
-                      size="small"
-                      color="success"
-                      startIcon={<PhoneEnabledRoundedIcon />}
-                      sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
+                  <Stack 
+                    direction={{ xs: 'column', sm: 'row' }} 
+                    justifyContent="space-between" 
+                    alignItems={{ xs: 'flex-start', sm: 'center' }} 
+                    spacing={2} 
+                    sx={{ mt: 1 }}
+                  >
+                    <Typography sx={{ fontWeight: 700 }}>
+                      {selectedHouse.residentName}
+                    </Typography>
+                    
+                    {(selectedHouse.phone || selectedHouse.phone2) && (
+                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                        {selectedHouse.phone && (
+                          <Button
+                            href={`tel:${selectedHouse.phone.replace(/\s+/g, '')}`}
+                            variant="contained" size="small" color="success"
+                            startIcon={<PhoneEnabledRoundedIcon />}
+                            sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
+                          >
+                            {selectedHouse.phone2 ? 'Llamar Tel 1' : 'Llamar'}
+                          </Button>
+                        )}
+                        {selectedHouse.phone2 && (
+                          <Button
+                            href={`tel:${selectedHouse.phone2.replace(/\s+/g, '')}`}
+                            variant="contained" size="small" color="success"
+                            startIcon={<PhoneEnabledRoundedIcon />}
+                            sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
+                          >
+                            Llamar Tel 2
+                          </Button>
+                        )}
+                      </Stack>
+                    )}
+                  </Stack>
+                </Paper>
+
+                <Box sx={{ p: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 700, color: 'text.primary' }}>
+                    ¿Residente contesta y confirma entrada?
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={residentConfirmed}
+                    exclusive
+                    onChange={(_, val) => val !== null && setResidentConfirmed(val)}
+                    fullWidth
+                    size="small"
+                  >
+                    <ToggleButton 
+                      value={true} 
+                      sx={{ 
+                        py: 1.5, borderRadius: 3, fontWeight: 'bold', border: '1px solid #d1d5db',
+                        '&.Mui-selected': {
+                          backgroundColor: '#008711', color: '#ffffff',
+                          '&:hover': { backgroundColor: '#006e0e' }
+                        }
+                      }}
                     >
-                      Llamar
-                    </Button>
-                  )}
-                </Stack>
-              </Paper>
+                      <CheckIcon sx={{ mr: 1 }} /> SÍ
+                    </ToggleButton>
+
+                    <ToggleButton 
+                      value={false} 
+                      sx={{ 
+                        py: 1.5, borderRadius: 3, fontWeight: 'bold', border: '1px solid #d1d5db',
+                        '&.Mui-selected': {
+                          backgroundColor: '#e1251b', color: '#ffffff',
+                          '&:hover': { backgroundColor: '#b81c15' }
+                        }
+                      }}
+                    >
+                      <CancelIcon sx={{ mr: 1 }} /> NO
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+              </Stack>
             )}
 
             <Divider />
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <Button
-                fullWidth
-                variant={type === 'visita' ? 'contained' : 'outlined'}
-                onClick={() => setType('visita')}
-                startIcon={<PersonIcon />}
-              >
-                Visita
-              </Button>
-
-              <Button
-                fullWidth
-                variant={type === 'encomienda' ? 'contained' : 'outlined'}
-                onClick={() => setType('encomienda')}
-                color="secondary"
-                startIcon={<LocalShippingRoundedIcon />}
-              >
-                Paquete
-              </Button>
-
-              <Button
-                fullWidth
-                variant={type === 'delivery' ? 'contained' : 'outlined'}
-                onClick={() => setType('delivery')}
-                color="warning"
-                startIcon={<DeliveryIcon />}
-              >
-                Delivery
-              </Button>
-            </Stack>
+            {/* CUADRÍCULA DE 6 BOTONES SELECCIONABLES */}
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 700, color: 'text.secondary' }}>
+                Tipo de Ingreso
+              </Typography>
+              <Grid container spacing={1.5}>
+                <Grid size={{ xs: 4 }}>
+                  <Button
+                    fullWidth variant={displayType === 'visita' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('visita')} startIcon={<PersonIcon />}
+                    sx={{ textTransform: 'none', py: 1.2 }}
+                  >
+                    Visita
+                  </Button>
+                </Grid>
+                <Grid size={{ xs: 4 }}>
+                  <Button
+                    fullWidth variant={displayType === 'encomienda' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('encomienda')} color="secondary" startIcon={<LocalShippingRoundedIcon />}
+                    sx={{ textTransform: 'none', py: 1.2 }}
+                  >
+                    Paquete
+                  </Button>
+                </Grid>
+                <Grid size={{ xs: 4 }}>
+                  <Button
+                    fullWidth variant={displayType === 'delivery' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('delivery')} color="warning" startIcon={<DeliveryIcon />}
+                    sx={{ textTransform: 'none', py: 1.2 }}
+                  >
+                    Delivery
+                  </Button>
+                </Grid>
+                <Grid size={{ xs: 4 }}>
+                  <Button
+                    fullWidth variant={displayType === 'transporte' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('transporte')} color="info" startIcon={<TaxiIcon />}
+                    sx={{ textTransform: 'none', py: 1.2 }}
+                  >
+                    Uber/Taxi
+                  </Button>
+                </Grid>
+                <Grid size={{ xs: 4 }}>
+                  <Button
+                    fullWidth variant={displayType === 'servicio' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('servicio')} color="success" startIcon={<ServiceIcon />}
+                    sx={{ textTransform: 'none', py: 1.2 }}
+                  >
+                    Servicios
+                  </Button>
+                </Grid>
+                <Grid size={{ xs: 4 }}>
+                  <Button
+                    fullWidth variant={displayType === 'mantencion' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('mantencion')} color="inherit" startIcon={<MaintenanceIcon />}
+                    sx={{ textTransform: 'none', py: 1.2, borderColor: 'action.disabled' }}
+                  >
+                    Técnico
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
 
             <TextField
               label="Nombre del Visitante / Repartidor"
@@ -200,12 +338,17 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
             />
 
             <Stack direction="row" spacing={2}>
+              {/* 🚀 RUT CON FORMATEADOR EN TIEMPO REAL */}
               <TextField
                 label="RUT"
                 required
                 fullWidth
                 value={visitorRut}
-                onChange={(e) => setVisitorRut(e.target.value)}
+                onChange={(e) => {
+                  const formatted = formatChileanRut(e.target.value);
+                  setVisitorRut(formatted);
+                }}
+                placeholder="12.345.678-9"
                 sx={inputStyle}
                 InputProps={{
                   startAdornment: (
@@ -215,11 +358,20 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                   ),
                 }}
               />
+              
+              {/* 🚀 PATENTE BLINDADA (Solo caracteres válidos y largo máximo de 6) */}
               <TextField
                 label="Patente"
                 fullWidth
                 value={plate}
-                onChange={(e) => setPlate(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  let cleanPlate = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                  if (cleanPlate.length > 6) {
+                    cleanPlate = cleanPlate.slice(0, 6);
+                  }
+                  setPlate(cleanPlate);
+                }}
+                placeholder="ABCD12 o AB1234"
                 sx={inputStyle}
                 InputProps={{
                   startAdornment: (

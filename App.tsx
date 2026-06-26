@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   ThemeProvider, createTheme, CssBaseline, Box, AppBar, Toolbar, 
@@ -68,7 +67,8 @@ const App: React.FC = () => {
     }
   }, [user]);
 
-  const handleLogin = (rut: string, name: string) => setUser({ rut, name });
+  // 🚀 CORRECCIÓN: Ahora el login acepta el rol y lo guarda en el objeto global
+  const handleLogin = (rut: string, name: string, role: string) => setUser({ rut, name, role });
   const handleLogout = () => setUser(null);
   const addVisit = (visit: VisitRecord) => setHistory(prev => [visit, ...prev]);
 
@@ -76,6 +76,7 @@ const App: React.FC = () => {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        {/* ⚠️ Nota: Asegúrate de que tu componente LoginForm pase los 3 parámetros en su onSubmit/onLogin */}
         <LoginForm onLogin={handleLogin} />
       </ThemeProvider>
     );

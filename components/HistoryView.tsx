@@ -19,12 +19,13 @@ import {
   HomeRounded as HomeIcon,
   PersonRounded as PersonIcon,
   BadgeRounded as BadgeIcon,
-  FormatListBulletedRounded as ListIcon
+  FormatListBulletedRounded as ListIcon,
+  GppBadRounded as SecurityIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import { VisitRecord } from '../types';
+import { VisitRecord, User } from '../types';
 import { api } from '../api';
 
 dayjs.extend(utc);
@@ -34,12 +35,30 @@ const CHILE_TZ = 'America/Santiago';
 
 interface HistoryViewProps {
   history: VisitRecord[];
+  user: User; // 🚀 Inyectamos el usuario actual para evaluar sus permisos de rol
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
+// 🚀 FUNCIONES DE ENMASCARAMIENTO PARA LEY DE PROTECCIÓN DE DATOS
+const maskRut = (rut: string): string => {
+  if (!rut) return '';
+  const clean = rut.trim();
+  if (clean.length < 5) return clean;
+  return clean.substring(0, 6) + '.xxx-x';
+};
+
+const maskPlate = (plate: string): string => {
+  if (!plate) return '';
+  const clean = plate.trim().replace(/[-\s]/g, '');
+  if (clean.length < 4) return plate;
+  return clean.substring(0, 2) + 'XX-XX';
+};
+
+const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }) => {
+    console.log("Usuario actual en el Historial:", user);
   const [dbHistory, setDbHistory] = useState<VisitRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [securityAlert, setSecurityAlert] = useState<string | null>(null); // 🚀 Estado para la alerta legal
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const getTodayChile = () => dayjs().tz(CHILE_TZ).format('YYYY-MM-DD');
@@ -63,6 +82,27 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
   useEffect(() => {
     fetchHistory();
   }, [filterDate, localHistory]);
+
+  // 🚀 VALIDACIÓN EN EL CAMBIO DE FECHA (LIMITACIÓN 48 HORAS CON EXCEPCIÓN ADMIN)
+  const handleDateChange = (selectedDateStr: string) => {
+    setSecurityAlert(null); // Reseteamos alertas previas
+
+    const selected = dayjs(selectedDateStr).startOf('day');
+    const today = dayjs().tz(CHILE_TZ).startOf('day');
+    
+    const daysDifference = today.diff(selected, 'day');
+
+    // 🔐 FILTRO PRIVILEGIADO: Si NO es administrador y busca más de 2 días atrás o fechas futuras
+    if (user?.role !== 'admin' && (daysDifference > 2 || daysDifference < 0)) {
+      setSecurityAlert(
+        'Acceso denegado: Por motivos de seguridad y en conformidad a la Ley de Protección de Datos, el rol de conserjería solo puede auditar las últimas 48 horas. Solicite acceso al Administrador si requiere revisar históricos extendidos.'
+      );
+      return; // Bloquea el cambio de estado de la fecha
+    }
+
+    // Si pasa la validación (o si es Administrador), se actualiza la fecha normalmente
+    setFilterDate(selectedDateStr);
+  };
 
   const handleMarkExit = async (id: string) => {
     setProcessingId(id);
@@ -126,14 +166,27 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
         <CalendarMonthIcon color="primary" />
         <TextField
           type="date"
-          label="Consultar Fecha (Chile)"
+          label={user?.role === 'admin' ? "Consultar Fecha (Modo Administrador)" : "Consultar Fecha (Chile)"}
           variant="standard"
           fullWidth
           value={filterDate}
-          onChange={(e) => setFilterDate(e.target.value)}
+          onChange={(e) => handleDateChange(e.target.value)} // 🚀 Apunta a la validación con bypass de Admin
           InputLabelProps={{ shrink: true }}
         />
       </Paper>
+
+      {/* 🚀 Alerta de Restricción Legal de Datos */}
+      {securityAlert && (
+        <Alert 
+          severity="error" 
+          variant="filled" 
+          icon={<SecurityIcon />}
+          sx={{ borderRadius: 3, fontWeight: 700 }}
+          onClose={() => setSecurityAlert(null)}
+        >
+          {securityAlert}
+        </Alert>
+      )}
 
       {error && (
         <Alert severity="warning" variant="outlined">
@@ -241,7 +294,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                         sx={{ fontWeight: 800 }}
                       />
 
-                      {/* Patente estilo premium */}
+                      {/* Patente estilo premium - 🚀 Enmascarada */}
                       {record.plate && (
                         <Box
                           sx={{
@@ -263,7 +316,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                               fontSize: '0.8rem'
                             }}
                           >
-                            {record.plate.toUpperCase()}
+                            {maskPlate(record.plate)}
                           </Typography>
                         </Box>
                       )}
@@ -285,7 +338,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                     </Stack>
                   </Grid>
 
-                  {/* Visitante */}
+                  {/* Visitante - 🚀 RUT Enmascarado */}
                   <Grid item xs={12} sm={8}>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <PersonIcon fontSize="small" />
@@ -296,7 +349,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory }) => {
                         <Stack direction="row" spacing={0.5}>
                           <BadgeIcon sx={{ fontSize: 12 }} />
                           <Typography variant="caption">
-                            {record.visitorRut}
+                            {maskRut(record.visitorRut)}
                           </Typography>
                         </Stack>
                       </Box>

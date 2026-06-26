@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Box, TextField, Button, Typography, Paper, Container, 
@@ -44,7 +43,7 @@ const FlowerOrnament = ({ position }: { position: 'top-left' | 'bottom-right' })
 );
 
 interface LoginFormProps {
-  onLogin: (rut: string, name: string) => void;
+  onLogin: (rut: string, name: string, role: string) => void; // 🚀 Modificado para aceptar el rol
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
@@ -54,7 +53,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!rut || !password) {
@@ -64,7 +63,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     setLoading(true);
     try {
       const user = await api.login(rut, password);
-      onLogin(user.rut, user.name);
+      
+      // 🕵️‍♂️ Capturamos el rol real que viene del backend limpio de mayúsculas o espacios.
+      // Si por un error humano en la BD viniera vacío, por defecto será 'conserje'.
+      const finalRole = user.role ? user.role.trim().toLowerCase() : 'conserje';
+      const cleanName = user.name ? user.name.trim() : '';
+
+      // Enviamos la data real al estado global de la App
+      onLogin(user.rut, cleanName, finalRole);
+      
     } catch (err: any) {
       setError(err.message || 'Credenciales inválidas');
     } finally {

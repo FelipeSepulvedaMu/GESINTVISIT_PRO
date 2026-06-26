@@ -1,9 +1,9 @@
-
 export interface House {
   id: string;
   number: string;
   residentName: string;
   phone: string;
+  phone2?: string; // 🚀 Agregado de forma segura y opcional
 }
 
 export type VisitType = 'visita' | 'encomienda';
@@ -18,6 +18,7 @@ export interface VisitRecord {
   visitorRut: string;
   plate?: string;
   conciergeName: string;
+  residentConfirmed?: boolean;
 }
 
 export interface User {
