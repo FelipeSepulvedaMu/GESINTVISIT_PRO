@@ -363,7 +363,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                       </Stack>
                     </Grid>
 
-                    {/* Casa + Estado de Autorización + Botón de Teléfono Recuperado */}
+                    {/* Casa + Estado de Autorización + Botones de Teléfono Autónomos */}
                     <Grid item xs={12} sm={4}>
                       <Stack direction="row" spacing={1} alignItems="flex-start" justifyContent="space-between">
                         <Stack direction="row" spacing={1} alignItems="flex-start">
@@ -407,24 +407,46 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                           </Box>
                         </Stack>
 
-                        {/* 📞 BOTÓN DEL TELÉFONO RECUPERADO */}
-                        {record.residentPhone && (
-                          <Button
-                            variant="outlined"
-                            color="primary"
-                            size="small"
-                            onClick={() => window.open(`tel:${record.residentPhone}`)}
-                            sx={{ 
-                              minWidth: '32px', 
-                              height: '32px', 
-                              p: 0, 
-                              borderRadius: '50%',
-                              borderColor: 'divider' 
-                            }}
-                          >
-                            <span style={{ fontSize: '1.1rem' }}>📞</span>
-                          </Button>
-                        )}
+                        {/* 📞 CONTENEDOR DE BOTONES DE TELÉFONO */}
+                        <Stack direction="row" spacing={1}>
+                          {/* Teléfono Principal */}
+                          {record.residentPhone && (
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              size="small"
+                              onClick={() => window.open(`tel:${record.residentPhone}`)}
+                              title={`Llamar Principal: ${record.residentPhone}`}
+                              sx={{ 
+                                minWidth: '32px', 
+                                height: '32px', 
+                                p: 0, 
+                                borderRadius: '50%'
+                              }}
+                            >
+                              <span style={{ fontSize: '1rem' }}>📞</span>
+                            </Button>
+                          )}
+
+                          {/* 🚀 Segundo Teléfono (Consumiendo el nuevo campo phone2 mapeado) */}
+                          {record.phone2 && (
+                            <Button
+                              variant="contained"
+                              color="secondary"
+                              size="small"
+                              onClick={() => window.open(`tel:${record.phone2}`)}
+                              title={`Llamar Alternativo: ${record.phone2}`}
+                              sx={{ 
+                                minWidth: '32px', 
+                                height: '32px', 
+                                p: 0, 
+                                borderRadius: '50%'
+                              }}
+                            >
+                              <span style={{ fontSize: '1rem' }}>📞</span>
+                            </Button>
+                          )}
+                        </Stack>
                       </Stack>
                     </Grid>
 
