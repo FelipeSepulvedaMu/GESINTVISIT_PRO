@@ -15,7 +15,7 @@ import {
   DeliveryDiningRounded as DeliveryIcon,
   CheckCircleRounded as CheckIcon,
   CancelRounded as CancelIcon,
-  LocalTaxiRounded as TaxiIcon,
+  TaxiIcon as TaxiIcon,
   HandymanRounded as MaintenanceIcon,
   EngineeringRounded as ServiceIcon
 } from '@mui/icons-material';
@@ -33,10 +33,8 @@ interface RegistrationFormProps {
   onGoToHistory: () => void;
 }
 
-// Definimos el tipo de estado temporal con las 6 opciones visuales
 type TemporalVisitType = 'visita' | 'encomienda' | 'delivery' | 'transporte' | 'servicio' | 'mantencion';
 
-// 🚀 FORMATEADOR DE RUT CHILENO EN TIEMPO REAL (Solo permite números y letra K)
 const formatChileanRut = (value: string): string => {
   let clean = value.replace(/[^0-9kK]/g, '').toUpperCase();
   
@@ -68,10 +66,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
   const [houses, setHouses] = useState<House[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(true);
   const [selectedHouse, setSelectedHouse] = useState<House | null>(null);
-  
-  // Estado temporal con las opciones visuales de la cuadrícula
   const [displayType, setDisplayType] = useState<TemporalVisitType>('visita');
-  
   const [visitorName, setVisitorName] = useState('');
   const [visitorRut, setVisitorRut] = useState('');
   const [plate, setPlate] = useState('');
@@ -96,8 +91,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
 
     try {
       const isoDate = dayjs().utc().format();
-
-      // Mapeo seguro para mantener los tipos originales de la base de datos
       const apiType: VisitType = displayType === 'encomienda' ? 'encomienda' : 'visita';
 
       const newVisit = await api.createVisit({
@@ -184,30 +177,35 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                     spacing={2} 
                     sx={{ mt: 1 }}
                   >
-                    <Typography sx={{ fontWeight: 700 }}>
+                    <Typography sx={{ fontWeight: 800, fontSize: '1.1rem' }}>
                       {selectedHouse.residentName}
                     </Typography>
                     
+                    {/* 📞 PANEL DE LLAMADA INTEGRADO CON DOBLE TELÉFONO */}
                     {(selectedHouse.phone || selectedHouse.phone2) && (
-                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                      <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' }, gap: 1 }}>
                         {selectedHouse.phone && (
                           <Button
                             href={`tel:${selectedHouse.phone.replace(/\s+/g, '')}`}
-                            variant="contained" size="small" color="success"
+                            variant="contained" 
+                            size="medium" 
+                            color="success"
                             startIcon={<PhoneEnabledRoundedIcon />}
-                            sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
+                            sx={{ borderRadius: 4, textTransform: 'none', boxShadow: 'none', fontWeight: 700, flexGrow: 1 }}
                           >
-                            {selectedHouse.phone2 ? 'Llamar Tel 1' : 'Llamar'}
+                            {selectedHouse.phone2 ? 'Llamar 1' : 'Llamar'}
                           </Button>
                         )}
                         {selectedHouse.phone2 && (
                           <Button
                             href={`tel:${selectedHouse.phone2.replace(/\s+/g, '')}`}
-                            variant="contained" size="small" color="success"
+                            variant="contained" 
+                            size="medium" 
+                            color="secondary" // Color morado/azul para contrastar con el principal
                             startIcon={<PhoneEnabledRoundedIcon />}
-                            sx={{ borderRadius: 2, textTransform: 'none', boxShadow: 'none' }}
+                            sx={{ borderRadius: 4, textTransform: 'none', boxShadow: 'none', fontWeight: 700, flexGrow: 1 }}
                           >
-                            Llamar Tel 2
+                            Llamar 2
                           </Button>
                         )}
                       </Stack>
@@ -258,7 +256,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
 
             <Divider />
 
-            {/* CUADRÍCULA DE 6 BOTONES SELECCIONABLES */}
             <Box>
               <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 700, color: 'text.secondary' }}>
                 Tipo de Ingreso
@@ -294,8 +291,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                 <Grid size={{ xs: 4 }}>
                   <Button
                     fullWidth variant={displayType === 'transporte' ? 'contained' : 'outlined'}
-                    onClick={() => setDisplayType('transporte')} color="info" startIcon={<TaxiIcon />}
-                    sx={{ textTransform: 'none', py: 1.2 }}
+                    onClick={() => setDisplayType('transporte')} color="info" sx={{ textTransform: 'none', py: 1.2 }}
                   >
                     Uber/Taxi
                   </Button>
@@ -338,7 +334,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
             />
 
             <Stack direction="row" spacing={2}>
-              {/* 🚀 RUT CON FORMATEADOR EN TIEMPO REAL */}
               <TextField
                 label="RUT"
                 required
@@ -359,7 +354,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                 }}
               />
               
-              {/* 🚀 PATENTE BLINDADA (Solo caracteres válidos y largo máximo de 6) */}
               <TextField
                 label="Patente"
                 fullWidth
