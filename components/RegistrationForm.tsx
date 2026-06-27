@@ -72,15 +72,26 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
   const [plate, setPlate] = useState('');
   const [residentConfirmed, setResidentConfirmed] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState(false);
+  
+  // 🚀 Guardaremos un historial temporal para rescatar el phone2 ausente
+  const [fallbackVisits, setFallbackVisits] = useState<VisitRecord[]>([]);
+
   const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({
     open: false, message: '', severity: 'success'
   });
 
   useEffect(() => {
+    // 1. Cargamos las casas normales
     api.getHouses()
       .then(setHouses)
       .catch(() => setHouses([]))
       .finally(() => setLoadingHouses(false));
+
+    // 2. 🚀 Traemos las visitas de hoy para usar sus datos de teléfonos como salvavidas
+    const todayStr = dayjs().format('YYYY-MM-DD');
+    api.getVisits(todayStr)
+      .then(setFallbackVisits)
+      .catch(() => {});
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,10 +150,23 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
     '& .MuiOutlinedInput-root': { borderRadius: 3, height: 56 }
   };
 
-  // Variables auxiliares ultra-seguras para extraer los números sin importar el mapeo
-  const mainPhone = selectedHouse ? (selectedHouse.phone || (selectedHouse as any).phone) : null;
-  const secondaryPhone = selectedHouse ? (selectedHouse.phone2 || (selectedHouse as any).phone2) : null;
+  // ==========================================
+  // 🚀 LÓGICA DE DETECCIÓN INTELIGENTE DE TELÉFONOS
+  // ==========================================
+  let mainPhone = selectedHouse ? (selectedHouse.phone || (selectedHouse as any).phone) : null;
+  let secondaryPhone = selectedHouse ? (selectedHouse.phone2 || (selectedHouse as any).phone2) : null;
   const residentDisplayName = selectedHouse ? (selectedHouse.residentName || (selectedHouse as any).owner_name) : '';
+
+  // 🕵️‍♂️ Si la casa está seleccionada pero no tiene phone2, lo buscamos en el historial que sí sabemos que lo trae
+  if (selectedHouse && !secondaryPhone) {
+    const matchingVisit = fallbackVisits.find(
+      v => Number(v.houseNumber) === Number(selectedHouse.number) && (v.phone2 || (v as any).phone2)
+    );
+    if (matchingVisit) {
+      secondaryPhone = matchingVisit.phone2 || (matchingVisit as any).phone2;
+    }
+  }
+  // ==========================================
 
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto' }}>
@@ -186,7 +210,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                       {residentDisplayName}
                     </Typography>
                     
-                    {/* 📞 PANEL DE LLAMADA INTEGRADO CON DOBLE TELÉFONO ULTRA SEGURIZADO */}
+                    {/* 📞 PANEL CON DOBLE BOTÓN DINÁMICO E INTELIGENTE */}
                     {(mainPhone || secondaryPhone) && (
                       <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' }, gap: 1 }}>
                         {mainPhone && (
