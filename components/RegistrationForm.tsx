@@ -15,7 +15,7 @@ import {
   DeliveryDiningRounded as DeliveryIcon,
   CheckCircleRounded as CheckIcon,
   CancelRounded as CancelIcon,
-  TaxiIcon as TaxiIcon,
+  LocalTaxiRounded as TaxiIcon,
   HandymanRounded as MaintenanceIcon,
   EngineeringRounded as ServiceIcon
 } from '@mui/icons-material';
@@ -96,7 +96,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
       const newVisit = await api.createVisit({
         date: isoDate,
         houseNumber: selectedHouse.number,
-        residentName: selectedHouse.residentName,
+        residentName: selectedHouse.residentName || (selectedHouse as any).owner_name,
         type: apiType, 
         visitorName: `[${displayType.toUpperCase()}] ${visitorName}`, 
         visitorRut,
@@ -139,6 +139,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
     '& .MuiOutlinedInput-root': { borderRadius: 3, height: 56 }
   };
 
+  // Variables auxiliares ultra-seguras para extraer los números sin importar el mapeo
+  const mainPhone = selectedHouse ? (selectedHouse.phone || (selectedHouse as any).phone) : null;
+  const secondaryPhone = selectedHouse ? (selectedHouse.phone2 || (selectedHouse as any).phone2) : null;
+  const residentDisplayName = selectedHouse ? (selectedHouse.residentName || (selectedHouse as any).owner_name) : '';
+
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto' }}>
       <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
@@ -156,7 +161,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
             <Autocomplete
               loading={loadingHouses}
               options={houses}
-              getOptionLabel={(o) => `Casa ${o.number} - ${o.residentName}`}
+              getOptionLabel={(o) => `Casa ${o.number} - ${o.residentName || (o as any).owner_name}`}
               onChange={(_, v) => setSelectedHouse(v)}
               value={selectedHouse}
               renderInput={(params) => (
@@ -178,30 +183,30 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                     sx={{ mt: 1 }}
                   >
                     <Typography sx={{ fontWeight: 800, fontSize: '1.1rem' }}>
-                      {selectedHouse.residentName}
+                      {residentDisplayName}
                     </Typography>
                     
-                    {/* 📞 PANEL DE LLAMADA INTEGRADO CON DOBLE TELÉFONO */}
-                    {(selectedHouse.phone || selectedHouse.phone2) && (
+                    {/* 📞 PANEL DE LLAMADA INTEGRADO CON DOBLE TELÉFONO ULTRA SEGURIZADO */}
+                    {(mainPhone || secondaryPhone) && (
                       <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' }, gap: 1 }}>
-                        {selectedHouse.phone && (
+                        {mainPhone && (
                           <Button
-                            href={`tel:${selectedHouse.phone.replace(/\s+/g, '')}`}
+                            href={`tel:${String(mainPhone).replace(/\s+/g, '')}`}
                             variant="contained" 
                             size="medium" 
                             color="success"
                             startIcon={<PhoneEnabledRoundedIcon />}
                             sx={{ borderRadius: 4, textTransform: 'none', boxShadow: 'none', fontWeight: 700, flexGrow: 1 }}
                           >
-                            {selectedHouse.phone2 ? 'Llamar 1' : 'Llamar'}
+                            {secondaryPhone ? 'Llamar 1' : 'Llamar'}
                           </Button>
                         )}
-                        {selectedHouse.phone2 && (
+                        {secondaryPhone && (
                           <Button
-                            href={`tel:${selectedHouse.phone2.replace(/\s+/g, '')}`}
+                            href={`tel:${String(secondaryPhone).replace(/\s+/g, '')}`}
                             variant="contained" 
                             size="medium" 
-                            color="secondary" // Color morado/azul para contrastar con el principal
+                            color="secondary" 
                             startIcon={<PhoneEnabledRoundedIcon />}
                             sx={{ borderRadius: 4, textTransform: 'none', boxShadow: 'none', fontWeight: 700, flexGrow: 1 }}
                           >
@@ -291,7 +296,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                 <Grid size={{ xs: 4 }}>
                   <Button
                     fullWidth variant={displayType === 'transporte' ? 'contained' : 'outlined'}
-                    onClick={() => setDisplayType('transporte')} color="info" sx={{ textTransform: 'none', py: 1.2 }}
+                    onClick={() => setDisplayType('transporte')} color="info" startIcon={<TaxiIcon />}
+                    sx={{ textTransform: 'none', py: 1.2 }}
                   >
                     Uber/Taxi
                   </Button>
