@@ -48,8 +48,10 @@ const formatChileanRut = (value: string): string => {
   const body = clean.slice(0, -1);
 
   let formattedBody = '';
+
   if (body.length > 5) {
     formattedBody = body.replace(/^(\d{1,2})(\d{3})(\d{3})$/, '$1.$2.$3');
+
     if (formattedBody === body) {
       formattedBody = body.replace(/^(\d{1,2})(\d{3})$/, '$1.$2');
     }
@@ -60,6 +62,24 @@ const formatChileanRut = (value: string): string => {
   }
 
   return `${formattedBody}-${dv}`;
+};
+
+const getPhoneValue = (source: any, keys: string[]): string | null => {
+  if (!source) return null;
+
+  for (const key of keys) {
+    const value = source[key];
+
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return String(value).trim();
+    }
+  }
+
+  return null;
+};
+
+const cleanPhoneForTel = (phone: string): string => {
+  return String(phone).replace(/[^\d+]/g, '');
 };
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit }) => {
@@ -73,33 +93,57 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
   const [residentConfirmed, setResidentConfirmed] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // 🚀 Diccionario global para emparejar automáticamente cada número de casa con su phone2 histórico
+  // Mapa global para rescatar teléfonos secundarios desde registros históricos
   const [globalPhone2Map, setGlobalPhone2Map] = useState<Record<string, string>>({});
 
-  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({
-    open: false, message: '', severity: 'success'
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'success'
   });
 
   useEffect(() => {
-    // 1. Cargamos el listado maestro de casas
     api.getHouses()
       .then(setHouses)
       .catch(() => setHouses([]))
       .finally(() => setLoadingHouses(false));
 
-    // 2. 🚀 Escaneamos el historial para indexar los segundos teléfonos de TODAS las casas
     api.getVisits()
       .then((visits) => {
         const phoneMapping: Record<string, string> = {};
+
         if (Array.isArray(visits)) {
           visits.forEach((v: any) => {
-            const p2 = v.phone2 || v.phone_2 || v.telefono2;
-            const houseNum = v.houseNumber || v.house_number;
+            const houseNum =
+              v.houseNumber ||
+              v.house_number ||
+              v.number ||
+              v.numeroCasa ||
+              v.numero_casa;
+
+            const p2 =
+              v.phone2 ||
+              v.phone_2 ||
+              v.secondPhone ||
+              v.second_phone ||
+              v.telefono2 ||
+              v.telefono_2 ||
+              v.telefonoDos ||
+              v.celular2 ||
+              v.mobile2 ||
+              v.residentPhone2 ||
+              v.resident_phone_2;
+
             if (p2 && houseNum) {
               phoneMapping[String(houseNum)] = String(p2).trim();
             }
           });
         }
+
         setGlobalPhone2Map(phoneMapping);
       })
       .catch(() => {});
@@ -107,6 +151,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!selectedHouse || submitting) return;
 
     setSubmitting(true);
@@ -153,30 +198,74 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
     }
   };
 
-  const handleCloseSnackbar = () =>
+  const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
 
   const inputStyle = {
     width: '100%',
-    '& .MuiOutlinedInput-root': { borderRadius: 3, height: 56 }
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 3,
+      height: 56
+    }
   };
 
-  // ==========================================
-  // 🚀 LÓGICA DE EXTRACCIÓN AUTOMÁTICA COOPERATIVA
-  // ==========================================
-  const mainPhone = selectedHouse ? (selectedHouse.phone || (selectedHouse as any).phone) : null;
-  const residentDisplayName = selectedHouse ? (selectedHouse.residentName || (selectedHouse as any).owner_name) : '';
-  
-  // Busca el teléfono secundario en el objeto actual, y si no viene, lo rescata del mapa global histórico
-  let secondaryPhone = selectedHouse 
-    ? (selectedHouse.phone2 || (selectedHouse as any).phone2 || (selectedHouse as any).phone_2 || globalPhone2Map[String(selectedHouse.number)]) 
+  const residentDisplayName = selectedHouse 
+    ? selectedHouse.residentName || (selectedHouse as any).owner_name || ''
+    : '';
+
+  const mainPhone = selectedHouse
+    ? getPhoneValue(selectedHouse as any, [
+        'phone',
+        'phone1',
+        'phone_1',
+        'telefono',
+        'telefono1',
+        'telefono_1',
+        'celular',
+        'celular1',
+        'mobile',
+        'mobile1',
+        'residentPhone',
+        'resident_phone'
+      ])
     : null;
-  // ==========================================
+
+  const secondaryPhoneFromHouse = selectedHouse
+    ? getPhoneValue(selectedHouse as any, [
+        'phone2',
+        'phone_2',
+        'secondPhone',
+        'second_phone',
+        'telefono2',
+        'telefono_2',
+        'telefonoDos',
+        'celular2',
+        'celular_2',
+        'mobile2',
+        'mobile_2',
+        'residentPhone2',
+        'resident_phone_2'
+      ])
+    : null;
+
+  const secondaryPhoneFromHistory = selectedHouse
+    ? globalPhone2Map[String(selectedHouse.number)]
+    : null;
+
+  const secondaryPhone = secondaryPhoneFromHouse || secondaryPhoneFromHistory || null;
 
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-      <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
-        
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: { xs: 2.5, sm: 4 }, 
+          borderRadius: 4, 
+          border: '1px solid', 
+          borderColor: 'divider' 
+        }}
+      >
         <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
           <MeetingRoomIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
@@ -186,7 +275,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
 
         <form onSubmit={handleSubmit}>
           <Stack spacing={3}>
-
             <Autocomplete
               loading={loadingHouses}
               options={houses}
@@ -194,16 +282,34 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
               onChange={(_, v) => setSelectedHouse(v)}
               value={selectedHouse}
               renderInput={(params) => (
-                <TextField {...params} label="Destino (Casa)" required variant="outlined" sx={inputStyle} />
+                <TextField 
+                  {...params} 
+                  label="Destino (Casa)" 
+                  required 
+                  variant="outlined" 
+                  sx={inputStyle} 
+                />
               )}
             />
 
             {selectedHouse && (
               <Stack spacing={2}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: '#f8f9fa' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                <Paper 
+                  variant="outlined" 
+                  sx={{ 
+                    p: 2, 
+                    borderRadius: 3, 
+                    bgcolor: '#f8f9fa' 
+                  }}
+                >
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary" 
+                    sx={{ fontWeight: 700 }}
+                  >
                     RESIDENTE
                   </Typography>
+
                   <Stack 
                     direction={{ xs: 'column', sm: 'row' }} 
                     justifyContent="space-between" 
@@ -215,29 +321,47 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                       {residentDisplayName}
                     </Typography>
                     
-                    {/* 📞 PANEL CON DOBLE BOTÓN DINÁMICO PARA TODAS LAS CASAS */}
                     {(mainPhone || secondaryPhone) && (
-                      <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' }, gap: 1 }}>
+                      <Stack 
+                        direction={{ xs: 'column', sm: 'row' }} 
+                        spacing={1} 
+                        sx={{ width: { xs: '100%', sm: 'auto' } }}
+                      >
                         {mainPhone && (
                           <Button
-                            href={`tel:${String(mainPhone).replace(/\s+/g, '')}`}
+                            href={`tel:${cleanPhoneForTel(mainPhone)}`}
                             variant="contained" 
                             size="medium" 
                             color="success"
                             startIcon={<PhoneEnabledRoundedIcon />}
-                            sx={{ borderRadius: 4, textTransform: 'none', boxShadow: 'none', fontWeight: 700, flexGrow: 1 }}
+                            sx={{ 
+                              borderRadius: 4, 
+                              textTransform: 'none', 
+                              boxShadow: 'none', 
+                              fontWeight: 700, 
+                              flexGrow: 1,
+                              whiteSpace: 'nowrap'
+                            }}
                           >
                             {secondaryPhone ? 'Llamar 1' : 'Llamar'}
                           </Button>
                         )}
+
                         {secondaryPhone && (
                           <Button
-                            href={`tel:${String(secondaryPhone).replace(/\s+/g, '')}`}
+                            href={`tel:${cleanPhoneForTel(secondaryPhone)}`}
                             variant="contained" 
                             size="medium" 
                             color="secondary" 
                             startIcon={<PhoneEnabledRoundedIcon />}
-                            sx={{ borderRadius: 4, textTransform: 'none', boxShadow: 'none', fontWeight: 700, flexGrow: 1 }}
+                            sx={{ 
+                              borderRadius: 4, 
+                              textTransform: 'none', 
+                              boxShadow: 'none', 
+                              fontWeight: 700, 
+                              flexGrow: 1,
+                              whiteSpace: 'nowrap'
+                            }}
                           >
                             Llamar 2
                           </Button>
@@ -248,9 +372,17 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                 </Paper>
 
                 <Box sx={{ p: 1 }}>
-                  <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 700, color: 'text.primary' }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      mb: 1.5, 
+                      fontWeight: 700, 
+                      color: 'text.primary' 
+                    }}
+                  >
                     ¿Residente contesta y confirma entrada?
                   </Typography>
+
                   <ToggleButtonGroup
                     value={residentConfirmed}
                     exclusive
@@ -261,9 +393,13 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                     <ToggleButton 
                       value={true} 
                       sx={{ 
-                        py: 1.5, borderRadius: 3, fontWeight: 'bold', border: '1px solid #d1d5db',
+                        py: 1.5, 
+                        borderRadius: 3, 
+                        fontWeight: 'bold', 
+                        border: '1px solid #d1d5db',
                         '&.Mui-selected': {
-                          backgroundColor: '#008711', color: '#ffffff',
+                          backgroundColor: '#008711', 
+                          color: '#ffffff',
                           '&:hover': { backgroundColor: '#006e0e' }
                         }
                       }}
@@ -274,9 +410,13 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                     <ToggleButton 
                       value={false} 
                       sx={{ 
-                        py: 1.5, borderRadius: 3, fontWeight: 'bold', border: '1px solid #d1d5db',
+                        py: 1.5, 
+                        borderRadius: 3, 
+                        fontWeight: 'bold', 
+                        border: '1px solid #d1d5db',
                         '&.Mui-selected': {
-                          backgroundColor: '#e1251b', color: '#ffffff',
+                          backgroundColor: '#e1251b', 
+                          color: '#ffffff',
                           '&:hover': { backgroundColor: '#b81c15' }
                         }
                       }}
@@ -291,60 +431,94 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
             <Divider />
 
             <Box>
-              <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 700, color: 'text.secondary' }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 1.5, 
+                  fontWeight: 700, 
+                  color: 'text.secondary' 
+                }}
+              >
                 Tipo de Ingreso
               </Typography>
+
               <Grid container spacing={1.5}>
                 <Grid size={{ xs: 4 }}>
                   <Button
-                    fullWidth variant={displayType === 'visita' ? 'contained' : 'outlined'}
-                    onClick={() => setDisplayType('visita')} startIcon={<PersonIcon />}
+                    fullWidth
+                    variant={displayType === 'visita' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('visita')}
+                    startIcon={<PersonIcon />}
                     sx={{ textTransform: 'none', py: 1.2 }}
                   >
                     Visita
                   </Button>
                 </Grid>
+
                 <Grid size={{ xs: 4 }}>
                   <Button
-                    fullWidth variant={displayType === 'encomienda' ? 'contained' : 'outlined'}
-                    onClick={() => setDisplayType('encomienda')} color="secondary" startIcon={<LocalShippingRoundedIcon />}
+                    fullWidth
+                    variant={displayType === 'encomienda' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('encomienda')}
+                    color="secondary"
+                    startIcon={<LocalShippingRoundedIcon />}
                     sx={{ textTransform: 'none', py: 1.2 }}
                   >
                     Paquete
                   </Button>
                 </Grid>
+
                 <Grid size={{ xs: 4 }}>
                   <Button
-                    fullWidth variant={displayType === 'delivery' ? 'contained' : 'outlined'}
-                    onClick={() => setDisplayType('delivery')} color="warning" startIcon={<DeliveryIcon />}
+                    fullWidth
+                    variant={displayType === 'delivery' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('delivery')}
+                    color="warning"
+                    startIcon={<DeliveryIcon />}
                     sx={{ textTransform: 'none', py: 1.2 }}
                   >
                     Delivery
                   </Button>
                 </Grid>
+
                 <Grid size={{ xs: 4 }}>
                   <Button
-                    fullWidth variant={displayType === 'transporte' ? 'contained' : 'outlined'}
-                    onClick={() => setDisplayType('transporte')} color="info" startIcon={<TaxiIcon />}
+                    fullWidth
+                    variant={displayType === 'transporte' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('transporte')}
+                    color="info"
+                    startIcon={<TaxiIcon />}
                     sx={{ textTransform: 'none', py: 1.2 }}
                   >
                     Uber/Taxi
                   </Button>
                 </Grid>
+
                 <Grid size={{ xs: 4 }}>
                   <Button
-                    fullWidth variant={displayType === 'servicio' ? 'contained' : 'outlined'}
-                    onClick={() => setDisplayType('servicio')} color="success" startIcon={<ServiceIcon />}
+                    fullWidth
+                    variant={displayType === 'servicio' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('servicio')}
+                    color="success"
+                    startIcon={<ServiceIcon />}
                     sx={{ textTransform: 'none', py: 1.2 }}
                   >
                     Servicios
                   </Button>
                 </Grid>
+
                 <Grid size={{ xs: 4 }}>
                   <Button
-                    fullWidth variant={displayType === 'mantencion' ? 'contained' : 'outlined'}
-                    onClick={() => setDisplayType('mantencion')} color="inherit" startIcon={<MaintenanceIcon />}
-                    sx={{ textTransform: 'none', py: 1.2, borderColor: 'action.disabled' }}
+                    fullWidth
+                    variant={displayType === 'mantencion' ? 'contained' : 'outlined'}
+                    onClick={() => setDisplayType('mantencion')}
+                    color="inherit"
+                    startIcon={<MaintenanceIcon />}
+                    sx={{ 
+                      textTransform: 'none', 
+                      py: 1.2, 
+                      borderColor: 'action.disabled' 
+                    }}
                   >
                     Técnico
                   </Button>
@@ -368,7 +542,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
               }}
             />
 
-            <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 label="RUT"
                 required
@@ -395,9 +569,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                 value={plate}
                 onChange={(e) => {
                   let cleanPlate = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
                   if (cleanPlate.length > 6) {
                     cleanPlate = cleanPlate.slice(0, 6);
                   }
+
                   setPlate(cleanPlate);
                 }}
                 placeholder="ABCD12 o AB1234"
@@ -420,9 +596,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
               disabled={!selectedHouse || submitting}
               sx={{ py: 2, borderRadius: 3, fontWeight: 900 }}
             >
-              {submitting ? <CircularProgress size={24} color="inherit" /> : 'Confirmar Ingreso'}
+              {submitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'Confirmar Ingreso'
+              )}
             </Button>
-
           </Stack>
         </form>
       </Paper>
