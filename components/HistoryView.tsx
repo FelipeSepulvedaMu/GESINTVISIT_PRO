@@ -410,13 +410,13 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                         {/* 📞 CONTENEDOR DE BOTONES DE TELÉFONO */}
                         <Stack direction="row" spacing={1}>
                           {/* Teléfono Principal */}
-                          {record.residentPhone && (
+                          {(record.residentPhone || (record as any).phone) && (
                             <Button
                               variant="contained"
                               color="primary"
                               size="small"
-                              onClick={() => window.open(`tel:${record.residentPhone}`)}
-                              title={`Llamar Principal: ${record.residentPhone}`}
+                              onClick={() => window.open(`tel:${record.residentPhone || (record as any).phone}`)}
+                              title="Llamar Principal"
                               sx={{ 
                                 minWidth: '32px', 
                                 height: '32px', 
@@ -428,14 +428,14 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                             </Button>
                           )}
 
-                          {/* 🚀 Segundo Teléfono (Consumiendo el nuevo campo phone2 mapeado) */}
-                          {record.phone2 && (
+                          {/* 🚀 Segundo Teléfono (Validación dual phone2 / residentPhone2) */}
+                          {(record.phone2 || (record as any).residentPhone2) && (
                             <Button
                               variant="contained"
                               color="secondary"
                               size="small"
-                              onClick={() => window.open(`tel:${record.phone2}`)}
-                              title={`Llamar Alternativo: ${record.phone2}`}
+                              onClick={() => window.open(`tel:${record.phone2 || (record as any).residentPhone2}`)}
+                              title="Llamar Alternativo"
                               sx={{ 
                                 minWidth: '32px', 
                                 height: '32px', 
