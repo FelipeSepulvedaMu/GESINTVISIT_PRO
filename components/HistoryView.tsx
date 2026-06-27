@@ -310,7 +310,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                                 borderRadius: '4px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                centerContent: 'center'
+                                justifyContent: 'center'
                               }}
                             >
                               <Typography
@@ -363,47 +363,68 @@ const HistoryView: React.FC<HistoryViewProps> = ({ history: localHistory, user }
                       </Stack>
                     </Grid>
 
-                    {/* Casa + Estado de Autorización */}
+                    {/* Casa + Estado de Autorización + Botón de Teléfono Recuperado */}
                     <Grid item xs={12} sm={4}>
-                      <Stack direction="row" spacing={1} alignItems="flex-start">
-                        <HomeIcon fontSize="small" sx={{ mt: 0.3 }} />
-                        <Box>
-                          <Typography fontWeight={800}>
-                            Casa {record.houseNumber}
-                          </Typography>
-                          <Typography variant="caption" display="block" sx={{ mb: 1 }}>
-                            {record.residentName}
-                          </Typography>
-                          
-                          {/* 🚀 INDICADOR DE AUTORIZACIÓN (Preparado para true/false/null de la BD) */}
-                          {record.resident_confirmed === true && (
-                            <Chip 
-                              label="AUTORIZADO POR RESIDENTE" 
-                              size="small" 
-                              color="success" 
-                              variant="outlined"
-                              sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
-                            />
-                          )}
-                          {record.resident_confirmed === false && (
-                            <Chip 
-                              label="SIN CONFIRMACIÓN / MANUAL" 
-                              size="small" 
-                              color="error" 
-                              variant="outlined"
-                              sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
-                            />
-                          )}
-                          {record.resident_confirmed === null && (
-                            <Chip 
-                              label="S/D" 
-                              size="small" 
-                              variant="outlined"
-                              sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20, opacity: 0.5 }}
-                              title="Registro antiguo o sin datos de confirmación"
-                            />
-                          )}
-                        </Box>
+                      <Stack direction="row" spacing={1} alignItems="flex-start" justifyContent="space-between">
+                        <Stack direction="row" spacing={1} alignItems="flex-start">
+                          <HomeIcon fontSize="small" sx={{ mt: 0.3 }} />
+                          <Box>
+                            <Typography fontWeight={800}>
+                              Casa {record.houseNumber}
+                            </Typography>
+                            <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+                              {record.residentName}
+                            </Typography>
+                            
+                            {/* 🚀 INDICADOR DE AUTORIZACIÓN */}
+                            {record.resident_confirmed === true && (
+                              <Chip 
+                                label="AUTORIZADO POR RESIDENTE" 
+                                size="small" 
+                                color="success" 
+                                variant="outlined"
+                                sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+                              />
+                            )}
+                            {record.resident_confirmed === false && (
+                              <Chip 
+                                label="SIN CONFIRMACIÓN / MANUAL" 
+                                size="small" 
+                                color="error" 
+                                variant="outlined"
+                                sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+                              />
+                            )}
+                            {record.resident_confirmed === null && (
+                              <Chip 
+                                label="S/D" 
+                                size="small" 
+                                variant="outlined"
+                                sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20, opacity: 0.5 }}
+                                title="Registro antiguo o sin datos de confirmación"
+                              />
+                            )}
+                          </Box>
+                        </Stack>
+
+                        {/* 📞 BOTÓN DEL TELÉFONO RECUPERADO */}
+                        {record.residentPhone && (
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            size="small"
+                            onClick={() => window.open(`tel:${record.residentPhone}`)}
+                            sx={{ 
+                              minWidth: '32px', 
+                              height: '32px', 
+                              p: 0, 
+                              borderRadius: '50%',
+                              borderColor: 'divider' 
+                            }}
+                          >
+                            <span style={{ fontSize: '1.1rem' }}>📞</span>
+                          </Button>
+                        )}
                       </Stack>
                     </Grid>
 
