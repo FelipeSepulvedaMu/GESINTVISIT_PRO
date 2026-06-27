@@ -73,24 +73,35 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
   const [residentConfirmed, setResidentConfirmed] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // Guardaremos un historial temporal para rescatar el phone2 ausente
-  const [fallbackVisits, setFallbackVisits] = useState<VisitRecord[]>([]);
+  // 🚀 Diccionario global para emparejar automáticamente cada número de casa con su phone2 histórico
+  const [globalPhone2Map, setGlobalPhone2Map] = useState<Record<string, string>>({});
 
   const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({
     open: false, message: '', severity: 'success'
   });
 
   useEffect(() => {
-    // 1. Cargamos las casas normales
+    // 1. Cargamos el listado maestro de casas
     api.getHouses()
       .then(setHouses)
       .catch(() => setHouses([]))
       .finally(() => setLoadingHouses(false));
 
-    // 2. Traemos las visitas de hoy para usar sus datos de teléfonos como salvavidas
-    const todayStr = dayjs().format('YYYY-MM-DD');
-    api.getVisits(todayStr)
-      .then(setFallbackVisits)
+    // 2. 🚀 Escaneamos el historial para indexar los segundos teléfonos de TODAS las casas
+    api.getVisits()
+      .then((visits) => {
+        const phoneMapping: Record<string, string> = {};
+        if (Array.isArray(visits)) {
+          visits.forEach((v: any) => {
+            const p2 = v.phone2 || v.phone_2 || v.telefono2;
+            const houseNum = v.houseNumber || v.house_number;
+            if (p2 && houseNum) {
+              phoneMapping[String(houseNum)] = String(p2).trim();
+            }
+          });
+        }
+        setGlobalPhone2Map(phoneMapping);
+      })
       .catch(() => {});
   }, []);
 
@@ -151,16 +162,15 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
   };
 
   // ==========================================
-  // 🚀 LÓGICA DE DETECCIÓN INTELIGENTE DE TELÉFONOS
+  // 🚀 LÓGICA DE EXTRACCIÓN AUTOMÁTICA COOPERATIVA
   // ==========================================
-  let mainPhone = selectedHouse ? (selectedHouse.phone || (selectedHouse as any).phone) : null;
-  let secondaryPhone = selectedHouse ? (selectedHouse.phone2 || (selectedHouse as any).phone2) : null;
+  const mainPhone = selectedHouse ? (selectedHouse.phone || (selectedHouse as any).phone) : null;
   const residentDisplayName = selectedHouse ? (selectedHouse.residentName || (selectedHouse as any).owner_name) : '';
-
-  // 🚨 BYPASS DE EMERGENCIA: Si es la casa de Valeska Jiménez, forzamos su segundo número
-  if (selectedHouse && (residentDisplayName.includes("Valeska") || String(selectedHouse.number) === "129")) {
-    secondaryPhone = "998380772";
-  }
+  
+  // Busca el teléfono secundario en el objeto actual, y si no viene, lo rescata del mapa global histórico
+  let secondaryPhone = selectedHouse 
+    ? (selectedHouse.phone2 || (selectedHouse as any).phone2 || (selectedHouse as any).phone_2 || globalPhone2Map[String(selectedHouse.number)]) 
+    : null;
   // ==========================================
 
   return (
@@ -205,7 +215,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                       {residentDisplayName}
                     </Typography>
                     
-                    {/* 📞 PANEL CON DOBLE BOTÓN DINÁMICO E INTELIGENTE */}
+                    {/* 📞 PANEL CON DOBLE BOTÓN DINÁMICO PARA TODAS LAS CASAS */}
                     {(mainPhone || secondaryPhone) && (
                       <Stack direction="row" spacing={1} sx={{ width: { xs: '100%', sm: 'auto' }, gap: 1 }}>
                         {mainPhone && (
