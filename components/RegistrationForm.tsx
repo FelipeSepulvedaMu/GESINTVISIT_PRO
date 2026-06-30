@@ -35,8 +35,17 @@ interface RegistrationFormProps {
 
 type TemporalVisitType = 'visita' | 'encomienda' | 'delivery' | 'transporte' | 'servicio' | 'mantencion';
 
+const getCleanRut = (value: string): string => {
+  return value.replace(/[^0-9kK]/g, '').toUpperCase();
+};
+
+const isRutLengthValid = (value: string): boolean => {
+  const clean = getCleanRut(value);
+  return clean.length >= 8 && clean.length <= 9;
+};
+
 const formatChileanRut = (value: string): string => {
-  let clean = value.replace(/[^0-9kK]/g, '').toUpperCase();
+  let clean = getCleanRut(value);
   
   if (clean.length > 9) {
     clean = clean.slice(0, 9);
@@ -93,7 +102,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
   const [residentConfirmed, setResidentConfirmed] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // Mapa global para rescatar teléfonos secundarios desde registros históricos
   const [globalPhone2Map, setGlobalPhone2Map] = useState<Record<string, string>>({});
 
   const [snackbar, setSnackbar] = useState<{
@@ -105,6 +113,10 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
     message: '',
     severity: 'success'
   });
+
+  const visitorRutHasValue = visitorRut.trim().length > 0;
+  const visitorRutIsValid = isRutLengthValid(visitorRut);
+  const showRutError = visitorRutHasValue && !visitorRutIsValid;
 
   useEffect(() => {
     api.getHouses()
@@ -153,6 +165,15 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
     e.preventDefault();
 
     if (!selectedHouse || submitting) return;
+
+    if (!visitorRutIsValid) {
+      setSnackbar({
+        open: true,
+        message: 'El RUT del visitante debe tener mínimo 8 y máximo 9 caracteres.',
+        severity: 'error'
+      });
+      return;
+    }
 
     setSubmitting(true);
 
@@ -553,11 +574,13 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
                   setVisitorRut(formatted);
                 }}
                 placeholder="12.345.678-9"
+                error={showRutError}
+                helperText={showRutError ? 'El RUT debe tener mínimo 8 y máximo 9 caracteres.' : ' '}
                 sx={inputStyle}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <BadgeIcon color="action" />
+                      <BadgeIcon color={showRutError ? 'error' : 'action'} />
                     </InputAdornment>
                   ),
                 }}
@@ -593,7 +616,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ user, onAddVisit })
               fullWidth
               variant="contained"
               size="large"
-              disabled={!selectedHouse || submitting}
+              disabled={!selectedHouse || submitting || !visitorRutIsValid}
               sx={{ py: 2, borderRadius: 3, fontWeight: 900 }}
             >
               {submitting ? (
